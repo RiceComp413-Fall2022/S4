@@ -6,9 +6,3 @@ app = Flask(__name__)
 def hello_world():
     return "<p>Hello, World!</p>"
 
-
-
-#to run
-#cd into s4/venv
-#. /bin/activate
-#flask --app main run

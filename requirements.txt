@@ -3,3 +3,4 @@ Flask==2.0.3
 Flask-Caching==1.11.1
 Flask-Compress==1.12
 flask-restx==0.5.1
+Werkzeug==2.1.2

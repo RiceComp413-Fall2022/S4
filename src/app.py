@@ -14,11 +14,14 @@ api = Api(
 
 ns = api.namespace("S4", description="S4 API Endpoints")
 
-todo = api.model(
-    "Todo",
+key = api.model(
+    "Key",
     {
-        "id": fields.Integer(readonly=True, description="The task unique identifier"),
-        "task": fields.String(required=True, description="The task details"),
+        "Key": fields.String(
+            required=True,
+            description="Newly generated API key",
+            example="j4ZRylUaPzz1wv2pahMYBA",
+        ),
     },
 )
 
@@ -28,8 +31,9 @@ class generateKey(Resource):
     """Route for generating a new API key"""
 
     @ns.doc("generateKey")
+    @api.response(200, "Success", model=key)
     def get(self):
-        return secrets.token_urlsafe(nbytes=16)
+        return {"Key": secrets.token_urlsafe(nbytes=16)}
 
 
 if __name__ == "__main__":

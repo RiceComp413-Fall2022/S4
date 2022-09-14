@@ -29,9 +29,6 @@ key = api.model(
     },
 )
 
-UPLOAD_FOLDER = '/Users/ericy/Desktop'
-ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
-
 # Endpoints
 @ns.route("/generateKey")
 class generateKey(Resource):
@@ -47,37 +44,37 @@ class generateKey(Resource):
 #     def get(self):
 #         return {"Key1": secrets.token_urlsafe(nbytes=16)}
 
-# @ns.route("/putFile", methods=['PUT'])
-# class uploadFile(Resource):
-#     def allowed_file(filename):
-#         return '.' in filename and \
-#             filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+@ns.route("/putFile")
+class uploadFile(Resource):
 
-#     @ns.doc("putFile")
-#     @api.response(200, "Success", model=key)
-#     def upload_file():
-#         if request.method == 'PUT':
-#             if 'file' not in request.files:
-#                 flash('No file part')
-#                 return redirect(request.url)
-#             file = request.files['file']
-            
-#             if file.filename == '':
-#                 flash('No selected file')
-#                 return redirect(request.url)
-#             if file and allowed_file(file.filename):
-#                 filename = secure_filename(file.filename)
-#                 file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-#                 return redirect(url_for('download_file', name=filename))
-#         return '''
-#         <!doctype html>
-#         <title>Upload new File</title>
-#         <h1>Upload new File</h1>
-#         <form method=post enctype=multipart/form-data>
-#         <input type=file name=file>
-#         <input type=submit value=Upload>
-#         </form>
-#         '''
+    ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
+    FILE_PATH = '/Users/hunenabadat/Downloads/S4TestFiles'
+
+    def allowed_file(self, filename):
+        return '.' in filename and \
+            filename.rsplit('.', 1)[1].lower() in self.ALLOWED_EXTENSIONS
+
+    @ns.doc("putFile")
+    @api.response(201, "Success")
+    def put(self):        
+        if 'file' not in request.files:
+            return {"msg" : "No file specified"}, 404
+
+        file = request.files['file']
+        if file and self.allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(self.FILE_PATH, filename))
+
+        return {"msg": "File successfully saved"}, 201
+        # return '''
+        # <!doctype html>
+        # <title>Upload new File</title>
+        # <h1>Upload new File</h1>
+        # <form method=post enctype=multipart/form-data>
+        # <input type=file name=file>
+        # <input type=submit value=Upload>
+        # </form>
+        # '''
 
 # Main
 if __name__ == "__main__":

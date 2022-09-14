@@ -33,7 +33,7 @@ key = api.model(
 @ns.route("/generateKey")
 class generateKey(Resource):
     @ns.doc("generateKey")
-    @api.response(200, "Success", model=key)         # response.status_code returned?
+    @api.response(200, "Success", model=key)
     def get(self):
         return {"Key": secrets.token_urlsafe(nbytes=16)}
 
@@ -47,34 +47,34 @@ class generateKey(Resource):
 @ns.route("/putFile")
 class uploadFile(Resource):
 
+    # PROBABLY NEEDS TO BE CHANGED CUZ WE ARE USING OBJECTS INSTEAD
     ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
-    FILE_PATH = '/Users/hunenabadat/Downloads/S4TestFiles'
+    FILE_PATH = '/Users/ericy/Desktop'
 
     def allowed_file(self, filename):
         return '.' in filename and \
             filename.rsplit('.', 1)[1].lower() in self.ALLOWED_EXTENSIONS
 
     @ns.doc("putFile")
-    @api.response(201, "Success")
+    @api.response(201, "File successfully saved")
+    @api.response(400, "Empty filepath")
+    @api.response(404, "No file specified")
     def put(self):        
         if 'file' not in request.files:
             return {"msg" : "No file specified"}, 404
 
         file = request.files['file']
+
+        # unless we literally name a file empty, i dont know how to hit this conditional
+        if file.filename == '':
+            flash('Empty filepath')
+            return {"msg" : "Empty filename"}, 400
+
         if file and self.allowed_file(file.filename):
             filename = secure_filename(file.filename)
             file.save(os.path.join(self.FILE_PATH, filename))
 
         return {"msg": "File successfully saved"}, 201
-        # return '''
-        # <!doctype html>
-        # <title>Upload new File</title>
-        # <h1>Upload new File</h1>
-        # <form method=post enctype=multipart/form-data>
-        # <input type=file name=file>
-        # <input type=submit value=Upload>
-        # </form>
-        # '''
 
 # Main
 if __name__ == "__main__":

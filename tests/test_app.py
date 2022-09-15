@@ -16,8 +16,9 @@ def test_generateKey(client):
                                         # it was really annoying to get the right functions.
     
 def test_putFile(client):
+    f = open('/Users/ericy/Documents/Miscellaneous/Standing.png', "rb");
     data = dict(
-        file=(BytesIO(b'blah blah blah'), os.path.join('/Users/ericy/Documents/Photography/Astrophotography', 'Stargazing.jpeg'))
+        file=(BytesIO(f.read()), 'Standing.png')
     )
     
     response = client.put('/S4/putFile', content_type='multipart/form-data', data = data)

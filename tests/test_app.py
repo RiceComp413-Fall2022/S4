@@ -23,6 +23,10 @@ def test_putFile(client):
     
     response = client.put('/S4/putFile', content_type='multipart/form-data', data = data)
     assert response.status_code == 201
+
+def test_listFiles(client):
+    response = client.get("/S4/listFiles")
+    assert response.status_code == 200
                                         
 def test_one():
     assert 1

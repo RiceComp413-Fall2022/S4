@@ -1,6 +1,6 @@
 import secrets, os
 
-from flask import Flask, request, redirect, flash, url_for
+from flask import Flask, request, flash, send_file
 from flask_restx import Api, Resource, fields
 
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -29,6 +29,8 @@ key = api.model(
     },
 )
 
+FILE_PATH = '/Users/hunenabadat/Downloads/S4TestFiles' #Change to directory where you want to save files
+
 # Endpoints
 @ns.route("/generateKey")
 class generateKey(Resource):
@@ -37,24 +39,33 @@ class generateKey(Resource):
     def get(self):
         return {"Key": secrets.token_urlsafe(nbytes=16)}
 
-# @ns.route("/getObject", methods=['GET'])
-# class getObject(Resource):
-#     @ns.doc("getObject")
-#     @api.response(200, "Success", model=key)         # response.status_code returned?
-#     def get(self):
-#         return {"Key1": secrets.token_urlsafe(nbytes=16)}
+@ns.route("/getFile/<string:filename>")
+class getFile(Resource):
+    @ns.doc("getFile")
+    @api.response(200, "Success")
+    def get(self, filename):
+        if not allowed_file(filename):
+            return {"msg": "Invalid file specified"}, 404
+        try:
+            return send_file(os.path.join(FILE_PATH, filename))
+        except:
+            return {"msg": "Invalid file specified"}, 404
+
+@ns.route("/listFiles")
+class listFiles(Resource):
+    @ns.doc("listFiles")
+    @api.response(200, "Success")
+    def get(self):
+        dirs_files = os.listdir(FILE_PATH)
+        onlyFiles = []
+        for f in dirs_files:
+            #get only files
+            if os.path.isfile(os.path.join(FILE_PATH, f)) and allowed_file(f):
+                onlyFiles.append(f)
+        return {"msg": "Files retrieved successfully", "files":onlyFiles}, 200
 
 @ns.route("/putFile")
 class uploadFile(Resource):
-
-    # PROBABLY NEEDS TO BE CHANGED CUZ WE ARE USING OBJECTS INSTEAD
-    ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
-    FILE_PATH = '/Users/ericy/Desktop'
-
-    def allowed_file(self, filename):
-        return '.' in filename and \
-            filename.rsplit('.', 1)[1].lower() in self.ALLOWED_EXTENSIONS
-
     @ns.doc("putFile")
     @api.response(201, "File successfully saved")
     @api.response(400, "Empty filepath")
@@ -70,11 +81,19 @@ class uploadFile(Resource):
             flash('Empty filepath')
             return {"msg" : "Empty filename"}, 400
 
-        if file and self.allowed_file(file.filename):
+        if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
-            file.save(os.path.join(self.FILE_PATH, filename))
+            file.save(os.path.join(FILE_PATH, filename))
 
         return {"msg": "File successfully saved"}, 201
+
+
+def allowed_file(filename):
+    # PROBABLY NEEDS TO BE CHANGED CUZ WE ARE USING OBJECTS INSTEAD
+    ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
+
+    return '.' in filename and \
+        filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # Main
 if __name__ == "__main__":

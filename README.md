@@ -26,4 +26,5 @@ Super S3
 
 ## Run the Server:
 
-1. To run the server, use `flask run`
+1. Run the server: `cd src && flask run`
+2. To use see the Swagger documentation, visit the URL to the newly spun-up server (e.g. http://127.0.0.1:5000)

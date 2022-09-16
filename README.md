@@ -23,6 +23,9 @@ Proposal Doc: https://docs.google.com/document/d/e/2PACX-1vRGsQ7jpw3bz5lq5e-3cBR
    `source ./venv/bin/activate`
 3. Install requirements:
    `pip install -r requirements.txt`
+4. Setup environment variables:
+   add the following line to the end of your venv/bin/activate script: <br>
+   `export FILE_PATH=your_file_path_here`
 
 ## Run the Server:
 

@@ -29,7 +29,7 @@ key = api.model(
     },
 )
 
-FILE_PATH = '/Users/hunenabadat/Downloads/S4TestFiles' #Change to directory where you want to save files
+FILE_PATH = os.getenv("FILE_PATH")
 
 # Endpoints
 @ns.route("/generateKey")
@@ -38,6 +38,7 @@ class generateKey(Resource):
     @api.response(200, "Success", model=key)
     def get(self):
         return {"Key": secrets.token_urlsafe(nbytes=16)}
+
 
 @ns.route("/getFile/<string:filename>")
 class getFile(Resource):
@@ -51,6 +52,7 @@ class getFile(Resource):
         except:
             return {"msg": "Invalid file specified"}, 404
 
+
 @ns.route("/listFiles")
 class listFiles(Resource):
     @ns.doc("listFiles")
@@ -59,10 +61,11 @@ class listFiles(Resource):
         dirs_files = os.listdir(FILE_PATH)
         onlyFiles = []
         for f in dirs_files:
-            #get only files
+            # get only files
             if os.path.isfile(os.path.join(FILE_PATH, f)) and allowed_file(f):
                 onlyFiles.append(f)
-        return {"msg": "Files retrieved successfully", "files":onlyFiles}, 200
+        return {"msg": "Files retrieved successfully", "files": onlyFiles}, 200
+
 
 @ns.route("/putFile")
 class uploadFile(Resource):
@@ -70,16 +73,16 @@ class uploadFile(Resource):
     @api.response(201, "File successfully saved")
     @api.response(400, "Empty filepath")
     @api.response(404, "No file specified")
-    def put(self):        
-        if 'file' not in request.files:
-            return {"msg" : "No file specified"}, 404
+    def put(self):
+        if "file" not in request.files:
+            return {"msg": "No file specified"}, 404
 
-        file = request.files['file']
+        file = request.files["file"]
 
         # unless we literally name a file empty, i dont know how to hit this conditional
-        if file.filename == '':
-            flash('Empty filepath')
-            return {"msg" : "Empty filename"}, 400
+        if file.filename == "":
+            flash("Empty filepath")
+            return {"msg": "Empty filename"}, 400
 
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
@@ -90,10 +93,10 @@ class uploadFile(Resource):
 
 def allowed_file(filename):
     # PROBABLY NEEDS TO BE CHANGED CUZ WE ARE USING OBJECTS INSTEAD
-    ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
+    ALLOWED_EXTENSIONS = {"txt", "pdf", "png", "jpg", "jpeg", "gif"}
 
-    return '.' in filename and \
-        filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
 
 # Main
 if __name__ == "__main__":

@@ -6,6 +6,8 @@ from flask_restx import Api, Resource, fields
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.utils import secure_filename
 
+from werkzeug.datastructures import FileStorage
+
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app)
 api = Api(
@@ -67,7 +69,13 @@ class listFiles(Resource):
         return {"msg": "Files retrieved successfully", "files": onlyFiles}, 200
 
 
+upload_parser = ns.parser()
+upload_parser.add_argument('file', 
+                           location='files',
+                           type=FileStorage)
+
 @ns.route("/putFile")
+@ns.expect(upload_parser)
 class uploadFile(Resource):
     @ns.doc("putFile")
     @api.response(201, "File successfully saved")
@@ -77,7 +85,8 @@ class uploadFile(Resource):
         if "file" not in request.files:
             return {"msg": "No file specified"}, 404
 
-        file = request.files["file"]
+        args = upload_parser.parse_args()
+        file = args.get('file')
 
         # unless we literally name a file empty, i dont know how to hit this conditional
         if file.filename == "":

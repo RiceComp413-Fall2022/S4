@@ -20,13 +20,48 @@ api = Api(
 ns = api.namespace("S4", description="S4 API Endpoints")
 
 # API Model for example header/body and the response
-key = api.model(
+key_example = api.model(
     "Key",
     {
         "Key": fields.String(
-            required=True,
-            description="Newly generated API key",
-            example="j4ZRylUaPzz1wv2pahMYBA",
+            required = True,
+            description = "Newly generated API key",
+            example = "j4ZRylUaPzz1wv2pahMYBA",
+        ),
+    }, 
+)
+
+GetObject_example = api.model(
+    "GetObject", 
+    {
+        "GetObject": fields.String(
+            required = True,
+            description = "Get an object by the object name (perhaps object ID or object HASH)",
+            example = "For now, it's the actual filename. We will eventually replace filename with the" + 
+                    "object's actual ID/HASH.",
+        ),
+    },
+)
+
+ListObjects_example = api.model(
+    "ListObjects", 
+    {
+        "ListObjects": fields.String(
+            required = True,
+            description = "List of object names in storage.",
+            example = "[image.jpeg, file.txt]",
+        ),
+    },
+)
+
+PutObject_example = api.model(
+    "PutObject", 
+    {
+        "Key": fields.String(
+            required = True,
+            description = "Puts an object into the specified filepath (for now). Currently, the object is " + 
+                          "placed somewhere on your local filesystem.",
+            example = "[]",
         ),
     },
 )
@@ -34,31 +69,33 @@ key = api.model(
 FILE_PATH = os.getenv("FILE_PATH")
 
 # Endpoints
+
+### Check if we can remove that later
 @ns.route("/generateKey")
 class generateKey(Resource):
     @ns.doc("generateKey")
-    @api.response(200, "Success", model=key)
+    @api.response(200, "Success", model=key_example)
     def get(self):
         return {"Key": secrets.token_urlsafe(nbytes=16)}
 
-
-@ns.route("/getFile/<string:filename>")
+@ns.route("/GetObject/?Key=<string:Key>")
 class getFile(Resource):
-    @ns.doc("getFile")
-    @api.response(200, "Success")
-    def get(self, filename):
-        if not allowed_file(filename):
+    @ns.doc("GetObject")
+    @api.response(200, "Success", model=GetObject_example)
+    def get(self, Key):
+        if not Key:
+            return {"msg": "Key not specified"}, 400
+        if not allowed_file(Key):
             return {"msg": "Invalid file specified"}, 404
         try:
-            return send_file(os.path.join(FILE_PATH, filename))
+            return send_file(os.path.join(FILE_PATH, Key))
         except:
-            return {"msg": "Invalid file specified"}, 404
+            return {"msg": "Invalid file specified", }, 404
 
-
-@ns.route("/listFiles")
+@ns.route("/ListObjects")
 class listFiles(Resource):
-    @ns.doc("listFiles")
-    @api.response(200, "Success")
+    @ns.doc("ListObjects")
+    @api.response(200, "Success", model=ListObjects_example)
     def get(self):
         dirs_files = os.listdir(FILE_PATH)
         onlyFiles = []
@@ -68,25 +105,27 @@ class listFiles(Resource):
                 onlyFiles.append(f)
         return {"msg": "Files retrieved successfully", "files": onlyFiles}, 200
 
-
 upload_parser = ns.parser()
 upload_parser.add_argument('file', 
                            location='files',
                            type=FileStorage)
 
-@ns.route("/putFile")
+@ns.route("/PutObject/?Key=<string:Key>")
 @ns.expect(upload_parser)
 class uploadFile(Resource):
-    @ns.doc("putFile")
-    @api.response(201, "File successfully saved")
+    @ns.doc("PutObject")
+    @api.response(201, "Object successfully saved", model=PutObject_example)
     @api.response(400, "Empty filepath")
     @api.response(404, "No file specified")
-    def put(self):
+    def put(self, Key):
+        if not Key:
+            return {"msg": "Key not specified"}, 400
+        
         if "file" not in request.files:
             return {"msg": "No file specified"}, 404
 
         args = upload_parser.parse_args()
-        file = args.get('file')
+        file = args.get("file")
 
         # unless we literally name a file empty, i dont know how to hit this conditional
         if file.filename == "":
@@ -99,13 +138,11 @@ class uploadFile(Resource):
 
         return {"msg": "File successfully saved"}, 201
 
-
 def allowed_file(filename):
     # PROBABLY NEEDS TO BE CHANGED CUZ WE ARE USING OBJECTS INSTEAD
     ALLOWED_EXTENSIONS = {"txt", "pdf", "png", "jpg", "jpeg", "gif"}
 
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
-
 
 # Main
 if __name__ == "__main__":

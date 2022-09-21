@@ -26,6 +26,8 @@ Proposal Doc: https://docs.google.com/document/d/e/2PACX-1vRGsQ7jpw3bz5lq5e-3cBR
 4. Setup environment variables:
    add the following line to the end of your venv/bin/activate script: <br>
    `export FILE_PATH=your_file_path_here`
+   For example:
+   `export FILE_PATH=/Users/ericy/Desktop`. Remember to add the '/' in front of the path, or else it will not work.
 
 ## Run the Server:
 
@@ -35,7 +37,7 @@ Proposal Doc: https://docs.google.com/document/d/e/2PACX-1vRGsQ7jpw3bz5lq5e-3cBR
 
 ## Run Tests:
 
-1. To run the unit tests, use `pytest`
+1. To run the unit tests, use `pytest` in the test directory.
 
 ## Hello World TODO:
 

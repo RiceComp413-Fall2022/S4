@@ -78,30 +78,37 @@ class generateKey(Resource):
     def get(self):
         return {"Key": secrets.token_urlsafe(nbytes=16)}
 
-@ns.route("/GetObject/?Key=<string:Key>")
-class getFile(Resource):
+@ns.route("/GetObject")
+class getObject(Resource):
     @ns.doc("GetObject")
     @api.response(200, "Success", model=GetObject_example)
-    def get(self, Key):
+    def get(self):
+        # get the key from the request parameters
+        args = request.args
+        Key = args.get("Key")
+        
+        # need a key
         if not Key:
             return {"msg": "Key not specified"}, 400
-        if not allowed_file(Key):
-            return {"msg": "Invalid file specified"}, 404
+        
+        # try to get the file
         try:
             return send_file(os.path.join(FILE_PATH, Key))
         except:
-            return {"msg": "Invalid file specified", }, 404
+            return {"msg": "Invalid file specified"}, 404
 
 @ns.route("/ListObjects")
-class listFiles(Resource):
+class listObjects(Resource):
     @ns.doc("ListObjects")
     @api.response(200, "Success", model=ListObjects_example)
     def get(self):
         dirs_files = os.listdir(FILE_PATH)
         onlyFiles = []
+        
+        # list the files
         for f in dirs_files:
             # get only files
-            if os.path.isfile(os.path.join(FILE_PATH, f)) and allowed_file(f):
+            if os.path.isfile(os.path.join(FILE_PATH, f)):
                 onlyFiles.append(f)
         return {"msg": "Files retrieved successfully", "files": onlyFiles}, 200
 
@@ -110,39 +117,40 @@ upload_parser.add_argument('file',
                            location='files',
                            type=FileStorage)
 
-@ns.route("/PutObject/?Key=<string:Key>")
+### Class to upload a file
+@ns.route("/PutObject")
 @ns.expect(upload_parser)
-class uploadFile(Resource):
+class putObject(Resource):
     @ns.doc("PutObject")
     @api.response(201, "Object successfully saved", model=PutObject_example)
     @api.response(400, "Empty filepath")
     @api.response(404, "No file specified")
-    def put(self, Key):
+    def put(self):
+        # get the key from the request parameters
+        args = request.args
+        Key = args.get("Key")
+        
+        # need a key
         if not Key:
             return {"msg": "Key not specified"}, 400
         
+        # need a response body with a file in it
         if "file" not in request.files:
             return {"msg": "No file specified"}, 404
 
         args = upload_parser.parse_args()
         file = args.get("file")
 
-        # unless we literally name a file empty, i dont know how to hit this conditional
-        if file.filename == "":
-            flash("Empty filepath")
-            return {"msg": "Empty filename"}, 400
-
-        if file and allowed_file(file.filename):
+        # file checks
+        if file:
             filename = secure_filename(file.filename)
-            file.save(os.path.join(FILE_PATH, filename))
+            if not filename: 
+                flash("Empty filepath")
+                return {"msg": "Empty filename"}, 400
+            else:
+                file.save(os.path.join(FILE_PATH, filename))
 
         return {"msg": "File successfully saved"}, 201
-
-def allowed_file(filename):
-    # PROBABLY NEEDS TO BE CHANGED CUZ WE ARE USING OBJECTS INSTEAD
-    ALLOWED_EXTENSIONS = {"txt", "pdf", "png", "jpg", "jpeg", "gif"}
-
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # Main
 if __name__ == "__main__":

@@ -19,8 +19,9 @@ api = Api(
 
 ns = api.namespace("S4", description="S4 API Endpoints")
 
+# --------------------------------------- API Model ---------------------------------------
 # API Model for example header/body and the response
-key_example = api.model(
+Key_example = api.model(
     "Key",
     {
         "Key": fields.String(
@@ -37,7 +38,7 @@ GetObject_example = api.model(
         "GetObject": fields.String(
             required = True,
             description = "Get an object by the object name (perhaps object ID or object HASH)",
-            example = "For now, it's the actual filename. We will eventually replace filename with the" + 
+            example = "For now, it's the actual filename, like bob.txt. We will eventually replace filename with the" + 
                     "object's actual ID/HASH.",
         ),
     },
@@ -68,13 +69,12 @@ PutObject_example = api.model(
 
 FILE_PATH = os.getenv("FILE_PATH")
 
-# Endpoints
-
+# --------------------------------------- ENDPOINTS ---------------------------------------
 ### Check if we can remove that later
 @ns.route("/generateKey")
 class generateKey(Resource):
     @ns.doc("generateKey")
-    @api.response(200, "Success", model=key_example)
+    @api.response(200, "Success", model=Key_example)
     def get(self):
         return {"Key": secrets.token_urlsafe(nbytes=16)}
 

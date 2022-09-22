@@ -19,8 +19,7 @@ api = Api(
 
 ns = api.namespace("S4", description="S4 API Endpoints")
 
-# --------------------------------------- API Model ---------------------------------------
-# API Model for example header/body and the response
+# --------------------- API Model for example header/body and the response ---------------------
 Key_example = api.model(
     "Key",
     {
@@ -50,7 +49,7 @@ ListObjects_example = api.model(
         "ListObjects": fields.String(
             required = True,
             description = "List of object names in storage.",
-            example = "[image.jpeg, file.txt]",
+            example = "[image.jpeg, file.txt, test.pdf]",
         ),
     },
 )
@@ -62,14 +61,25 @@ PutObject_example = api.model(
             required = True,
             description = "Puts an object into the specified filepath (for now). Currently, the object is " + 
                           "placed somewhere on your local filesystem.",
-            example = "[]",
+            example = "Can return something like the filepath it was stored in, so /Users/bob/test.txt",
         ),
     },
 )
 
 FILE_PATH = os.getenv("FILE_PATH")
 
-# --------------------------------------- ENDPOINTS ---------------------------------------
+# --------------------------------------- Endpoint parameters ---------------------------------------
+key_param = ns.parser()
+key_param.add_argument('Key', type=str)
+
+file_param = ns.parser()
+file_param.add_argument('file', 
+                           location='files',
+                           type=FileStorage)
+
+# --------------------------------------- Actual endpoints ---------------------------------------
+
+# --------------------------- GenerateKey ---------------------------
 ### Check if we can remove that later
 @ns.route("/generateKey")
 class generateKey(Resource):
@@ -78,7 +88,9 @@ class generateKey(Resource):
     def get(self):
         return {"Key": secrets.token_urlsafe(nbytes=16)}
 
+# --------------------------- GetObject ---------------------------
 @ns.route("/GetObject")
+@ns.expect(key_param)
 class getObject(Resource):
     @ns.doc("GetObject")
     @api.response(200, "Success", model=GetObject_example)
@@ -97,29 +109,9 @@ class getObject(Resource):
         except:
             return {"msg": "Invalid file specified"}, 404
 
-@ns.route("/ListObjects")
-class listObjects(Resource):
-    @ns.doc("ListObjects")
-    @api.response(200, "Success", model=ListObjects_example)
-    def get(self):
-        dirs_files = os.listdir(FILE_PATH)
-        onlyFiles = []
-        
-        # list the files
-        for f in dirs_files:
-            # get only files
-            if os.path.isfile(os.path.join(FILE_PATH, f)):
-                onlyFiles.append(f)
-        return {"msg": "Files retrieved successfully", "files": onlyFiles}, 200
-
-upload_parser = ns.parser()
-upload_parser.add_argument('file', 
-                           location='files',
-                           type=FileStorage)
-
-### Class to upload a file
+# --------------------------- PutObject ---------------------------
 @ns.route("/PutObject")
-@ns.expect(upload_parser)
+@ns.expect(file_param, key_param)
 class putObject(Resource):
     @ns.doc("PutObject")
     @api.response(201, "Object successfully saved", model=PutObject_example)
@@ -138,7 +130,7 @@ class putObject(Resource):
         if "file" not in request.files:
             return {"msg": "No file specified"}, 404
 
-        args = upload_parser.parse_args()
+        args = file_param.parse_args()
         file = args.get("file")
 
         # file checks
@@ -151,6 +143,22 @@ class putObject(Resource):
                 file.save(os.path.join(FILE_PATH, filename))
 
         return {"msg": "File successfully saved"}, 201
+    
+# --------------------------- ListObjects ---------------------------
+@ns.route("/ListObjects")
+class listObjects(Resource):
+    @ns.doc("ListObjects")
+    @api.response(200, "Success", model=ListObjects_example)
+    def get(self):
+        dirs_files = os.listdir(FILE_PATH)
+        onlyFiles = []
+        
+        # list the files
+        for f in dirs_files:
+            # get only files
+            if os.path.isfile(os.path.join(FILE_PATH, f)):
+                onlyFiles.append(f)
+        return {"msg": "Files retrieved successfully", "files": onlyFiles}, 200
 
 # Main
 if __name__ == "__main__":

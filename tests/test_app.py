@@ -15,9 +15,9 @@ def testGenerateKey(client):
     # assert len(response.data["Key"]) == 16
     
 def testPutObject(client):
-    f = open('/Users/ericy/Documents/Miscellaneous/Standing.png', "rb");
+    f = open('./InputTetris.png', "rb");
     data = dict(
-        file=(BytesIO(f.read()), 'Standing.png')
+        file=(BytesIO(f.read()), 'OutputTetris.png')
     )
     
     response = client.put('/S4/PutObject?Key=TestKey', content_type='multipart/form-data', data = data)
@@ -25,7 +25,7 @@ def testPutObject(client):
 
 # THIS FUNCTION NEEDS TO BE AFTER THE testPutObject test TO WORK.
 def testGetObject(client):
-    response = client.get('/S4/GetObject?Key=Standing.png', content_type='multipart/form-data')
+    response = client.get('/S4/GetObject?Key=OutputTetris.png', content_type='multipart/form-data')
     assert response.status_code == 200
     
 def testListObject(client):

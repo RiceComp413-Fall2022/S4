@@ -66,7 +66,8 @@ PutObject_example = api.model(
     },
 )
 
-FILE_PATH = os.getenv("FILE_PATH")
+FILE_PATH = "../tests"
+# FILE_PATH = os.getenv("FILE_PATH")
 
 # --------------------------------------- Endpoint parameters ---------------------------------------
 key_param = ns.parser()

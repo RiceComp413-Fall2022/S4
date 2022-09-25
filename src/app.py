@@ -122,7 +122,9 @@ class getObject(Resource):
             return {"msg": "No object associated with key"}, 400
         # try to get the file
         try:
-            return send_file(keys_to_files[Key])
+            return send_file(
+                os.path.join(FILE_PATH, Key), download_name=keys_to_files[Key]
+            )
         except:
             return {"msg": "Invalid file specified"}, 404
 
@@ -160,13 +162,8 @@ class putObject(Resource):
                 flash("Empty filepath")
                 return {"msg": "Empty filename"}, 400
             else:
-                # TODO change the filepath to save s.t. two files
-                # do not overwrite each other if they have the same name
-                # but different keys
-                # NOTE possible solution: simply save the db filename as the key
-                # and log the actual filename in the key to filename dict
-                keys_to_files[Key] = os.path.join(FILE_PATH, filename)
-                file.save(keys_to_files[Key])
+                keys_to_files[Key] = filename
+                file.save(os.path.join(FILE_PATH, Key))
 
         return {"msg": "File successfully saved"}, 201
 

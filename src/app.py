@@ -8,6 +8,10 @@ from werkzeug.utils import secure_filename
 
 from werkzeug.datastructures import FileStorage
 
+import json
+
+import atexit
+
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app)
 api = Api(
@@ -19,7 +23,17 @@ api = Api(
 
 ns = api.namespace("S4", description="S4 API Endpoints")
 
-keys_to_files = {}
+with open("../keys.json", "r") as f:
+    keys_to_files = json.load(f)
+
+
+def handleShutdown():
+    with open("../keys.json", "w") as f:
+        f.write(json.dumps(keys_to_files))
+
+
+atexit.register(handleShutdown)
+
 
 # --------------------- API Model for example header/body and the response ---------------------
 Key_example = api.model(

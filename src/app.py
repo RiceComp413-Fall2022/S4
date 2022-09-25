@@ -177,15 +177,8 @@ class listObjects(Resource):
     @ns.doc("ListObjects")
     @api.response(200, "Success", model=ListObjects_example)
     def get(self):
-        dirs_files = os.listdir(FILE_PATH)
-        onlyFiles = []
-
-        # list the files
-        for f in dirs_files:
-            # get only files
-            if os.path.isfile(os.path.join(FILE_PATH, f)):
-                onlyFiles.append(f)
-        return {"msg": "Files retrieved successfully", "files": onlyFiles}, 200
+        file_names = [keys_to_files[key] for key in keys_to_files]
+        return {"msg": "Files retrieved successfully", "files": file_names}, 200
 
 
 # Main

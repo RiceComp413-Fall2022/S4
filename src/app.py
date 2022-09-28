@@ -23,20 +23,6 @@ api = Api(
 
 ns = api.namespace("S4", description="S4 API Endpoints")
 
-# def get_keys_to_files():
-#     with open("../keys.json", "r") as f:
-#         keys_to_files = json.load(f)
-
-# def clear_keys_to_files():
-#     keys_to_files = {}
-
-
-# def handleShutdown():
-#     with open("../keys.json", "w") as f:
-#         f.write(json.dumps(keys_to_files))
-# atexit.register(handleShutdown)
-
-
 # --------------------- API Model for example header/body and the response ---------------------
 Key_example = api.model(
     "Key",
@@ -198,7 +184,7 @@ class listObjects(Resource):
     def get(self):
         with open("../keys.json", "r") as f:
             keys_to_files = json.load(f)
-            
+
         file_names = [keys_to_files[key] for key in keys_to_files]
         return {"msg": "Files retrieved successfully", "files": file_names}, 200
 

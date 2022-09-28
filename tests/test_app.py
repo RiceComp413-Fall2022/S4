@@ -23,7 +23,7 @@ def test_landing(app, client):
 
 
 def test_generate_key(client):
-    response = client.get("/S4/generateKey")
+    response = client.get("/S4/GenerateKey")
     assert response.status_code == 200
     assert response
     assert response.data is not None

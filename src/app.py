@@ -23,16 +23,18 @@ api = Api(
 
 ns = api.namespace("S4", description="S4 API Endpoints")
 
-with open("../keys.json", "r") as f:
-    keys_to_files = json.load(f)
+# def get_keys_to_files():
+#     with open("../keys.json", "r") as f:
+#         keys_to_files = json.load(f)
+
+# def clear_keys_to_files():
+#     keys_to_files = {}
 
 
-def handleShutdown():
-    with open("../keys.json", "w") as f:
-        f.write(json.dumps(keys_to_files))
-
-
-atexit.register(handleShutdown)
+# def handleShutdown():
+#     with open("../keys.json", "w") as f:
+#         f.write(json.dumps(keys_to_files))
+# atexit.register(handleShutdown)
 
 
 # --------------------- API Model for example header/body and the response ---------------------
@@ -111,6 +113,10 @@ class getObject(Resource):
     @ns.doc("GetObject")
     @api.response(200, "Success", model=GetObject_example)
     def get(self):
+        # TODO: make into a DAO layer with transactions
+        with open("../keys.json", "r") as f:
+            keys_to_files = json.load(f)
+        
         # get the key from the request parameters
         args = request.args
         Key = args.get("Key")
@@ -138,6 +144,9 @@ class putObject(Resource):
     @api.response(400, "Empty filepath")
     @api.response(404, "No file specified")
     def put(self):
+        with open("../keys.json", "r") as f:
+            keys_to_files = json.load(f)
+        
         # get the key from the request parameters
         args = request.args
         Key = args.get("Key")
@@ -164,6 +173,8 @@ class putObject(Resource):
             else:
                 keys_to_files[Key] = filename
                 file.save(os.path.join(FILE_PATH, Key))
+                with open("../keys.json", "w") as f:
+                    f.write(json.dumps(keys_to_files))
 
         return {"msg": "File successfully saved"}, 201
 
@@ -174,6 +185,9 @@ class listObjects(Resource):
     @ns.doc("ListObjects")
     @api.response(200, "Success", model=ListObjects_example)
     def get(self):
+        with open("../keys.json", "r") as f:
+            keys_to_files = json.load(f)
+            
         file_names = [keys_to_files[key] for key in keys_to_files]
         return {"msg": "Files retrieved successfully", "files": file_names}, 200
 

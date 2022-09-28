@@ -195,6 +195,9 @@ class deleteObject(Resource):
     @ns.doc("DeleteObject")
     @api.response(200, "Success", model=DeleteObject_example)
     def put(self):
+        with open("../keys.json", "r") as f:
+            keys_to_files = json.load(f)
+
         # get the key from the request parameters
         args = request.args
         Key = args.get("Key")
@@ -207,6 +210,8 @@ class deleteObject(Resource):
 
         # remove entry from json
         keys_to_files.pop(Key)
+        with open("../keys.json", "w") as f:
+            f.write(json.dumps(keys_to_files))
 
         # remove file from filesystem
         os.remove(os.path.join(FILE_PATH, Key))

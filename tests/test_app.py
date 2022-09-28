@@ -5,11 +5,14 @@ import pytest, json
 
 @pytest.fixture(autouse=True)
 def do_not_mutate_keys_json():
+    # save keys.json before modification
     with open("../keys.json", "r") as f:
         keys_to_files = json.load(f)
 
+    # test will be run here
     yield 
 
+    # restore keys.json to original state
     with open("../keys.json", "w") as f:
         f.write(json.dumps(keys_to_files))
 

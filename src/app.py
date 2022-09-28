@@ -82,6 +82,17 @@ PutObject_example = api.model(
     },
 )
 
+DeleteObject_example = api.model(
+    "Deletebject",
+    {
+        "Key": fields.String(
+            required=True,
+            description="Deletes an object store on the local filesystem.",
+            example="Can return something like the filepath it was stored in, so /Users/bob/test.txt",
+        ),
+    },
+)
+
 FILE_PATH = "../tests"
 # FILE_PATH = os.getenv("FILE_PATH")
 
@@ -177,6 +188,30 @@ class listObjects(Resource):
         file_names = [keys_to_files[key] for key in keys_to_files]
         return {"msg": "Files retrieved successfully", "files": file_names}, 200
 
+# --------------------------- DeleteObject ---------------------------
+@ns.route("/DeleteObject")
+@ns.expect(key_param)
+class deleteObject(Resource):
+    @ns.doc("DeleteObject")
+    @api.response(200, "Success", model=DeleteObject_example)
+    def put(self):
+        # get the key from the request parameters
+        args = request.args
+        Key = args.get("Key")
+
+        # key checks
+        if not Key:
+            return {"msg": "Key not specified"}, 400
+        if Key not in keys_to_files:
+            return {"msg": "Key does not exist"}, 404
+
+        # remove entry from json
+        keys_to_files.pop(Key)
+
+        # remove file from filesystem
+        os.remove(os.path.join(FILE_PATH, Key))
+
+        return {"msg": "File deleted successfully"}, 200
 
 # Main
 if __name__ == "__main__":

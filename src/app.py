@@ -22,16 +22,18 @@ ns = api.namespace("S4", description="S4 API Endpoints")
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~ API Model for example header/body and the response ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Key200 = api.model(
-    "Key", {
+    "Key",
+    {
         "Key": fields.String(
             description="Newly generated API key",
             example="j4ZRylUaPzz1wv2pahMYBA",
         ),
     },
 )
-        
+
 GetObject400 = api.model(
-    "GetObject", {
+    "GetObject",
+    {
         "msg": fields.String(
             example="'Key not specified' or 'No object associated with key'}",
         ),
@@ -39,7 +41,8 @@ GetObject400 = api.model(
 )
 
 GetObject404 = api.model(
-    "GetObject2", {
+    "GetObject2",
+    {
         "msg": fields.String(
             example="Invalid file specified",
         ),
@@ -47,7 +50,8 @@ GetObject404 = api.model(
 )
 
 GetObject200 = api.model(
-    "GetObject3", {
+    "GetObject3",
+    {
         "GetObject": fields.String(
             required=True,
             description="Get an object by the object name (like bject ID or object HASH)",
@@ -58,7 +62,8 @@ GetObject200 = api.model(
 )
 
 PutObject400 = api.model(
-    "PutObject", {
+    "PutObject",
+    {
         "msg": fields.String(
             example="'Empty filepath' or 'Key not specified' or 'Key not unique'",
         ),
@@ -66,7 +71,8 @@ PutObject400 = api.model(
 )
 
 PutObject404 = api.model(
-    "PutObject2", {
+    "PutObject2",
+    {
         "msg": fields.String(
             example="No file specified",
         ),
@@ -74,7 +80,8 @@ PutObject404 = api.model(
 )
 
 PutObject201 = api.model(
-    "PutObject3", {
+    "PutObject3",
+    {
         "msg": fields.String(
             required=True,
             description="Puts an object into the specified filepath (for now). Currently, the object is "
@@ -85,7 +92,8 @@ PutObject201 = api.model(
 )
 
 ListObjects200 = api.model(
-    "ListObjects", {
+    "ListObjects",
+    {
         "msg": fields.String(
             description="Success message",
             example="Files retrieved successfully",
@@ -93,31 +101,30 @@ ListObjects200 = api.model(
         "files": fields.String(
             description="List of object names in storage.",
             example="['image.jpeg', 'file.txt', 'test.pdf']",
-        )
+        ),
     },
 )
 
 DeleteObject400 = api.model(
-    "Deletebject", {
-        "Key": fields.String(
-            example="Key not specified"
-        ),
+    "Deletebject",
+    {
+        "Key": fields.String(example="Key not specified"),
     },
 )
 
 DeleteObject404 = api.model(
-    "Deletebject2", {
-        "Key": fields.String(
-            example="Key does not exist"
-        ),
+    "Deletebject2",
+    {
+        "Key": fields.String(example="Key does not exist"),
     },
 )
 
 DeleteObject200 = api.model(
-    "Deletebject3", {
+    "Deletebject3",
+    {
         "Key": fields.String(
             description="Deletes an object store on the local filesystem.",
-            example="File deleted successfully"
+            example="File deleted successfully",
         ),
     },
 )
@@ -135,12 +142,12 @@ file_param.add_argument("file", location="files", type=FileStorage)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Actual endpoints ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # ----------------------------------- GenerateKey -----------------------------------
-@ns.route("/GenerateKey")
-class generateKey(Resource):
-    @ns.doc("GenerateKey")
-    @api.response(200, "Success", model=Key200)
-    def get(self):
-        return {"Key": secrets.token_urlsafe(nbytes=16)}
+# @ns.route("/GenerateKey")
+# class generateKey(Resource):
+#     @ns.doc("GenerateKey")
+#     @api.response(200, "Success", model=Key200)
+#     def get(self):
+#         return {"Key": secrets.token_urlsafe(nbytes=16)}
 
 # ----------------------------------- GetObject -----------------------------------
 @ns.route("/GetObject")
@@ -154,7 +161,7 @@ class getObject(Resource):
         # TODO: make into a DAO layer with transactions
         with open("../keys.json", "r") as f:
             keys_to_files = json.load(f)
-        
+
         # get the key from the request parameters
         args = request.args
         Key = args.get("Key")
@@ -164,13 +171,15 @@ class getObject(Resource):
             return {"msg": "Key not specified"}, 400
         if Key not in keys_to_files:
             return {"msg": "No object associated with key"}, 400
-        
+
         # try to get the file
         try:
-            return send_file(os.path.join(FILE_PATH, Key), 
-                             download_name=keys_to_files[Key])
+            return send_file(
+                os.path.join(FILE_PATH, Key), download_name=keys_to_files[Key]
+            )
         except:
             return {"msg": "Invalid file specified"}, 404
+
 
 # ----------------------------------- PutObject -----------------------------------
 @ns.route("/PutObject")
@@ -183,7 +192,7 @@ class putObject(Resource):
     def put(self):
         with open("../keys.json", "r") as f:
             keys_to_files = json.load(f)
-        
+
         # get the key from the request parameters
         args = request.args
         Key = args.get("Key")
@@ -215,6 +224,7 @@ class putObject(Resource):
 
         return {"msg": "File successfully saved"}, 201
 
+
 # ----------------------------------- ListObjects -----------------------------------
 @ns.route("/ListObjects")
 class listObjects(Resource):
@@ -226,6 +236,7 @@ class listObjects(Resource):
 
         file_names = [keys_to_files[key] for key in keys_to_files]
         return {"msg": "Files retrieved successfully", "files": file_names}, 200
+
 
 # ----------------------------------- DeleteObject -----------------------------------
 @ns.route("/DeleteObject")
@@ -259,7 +270,7 @@ class deleteObject(Resource):
 
         return {"msg": "File deleted successfully"}, 200
 
+
 # Main
 if __name__ == "__main__":
     app.run(debug=True)
-    

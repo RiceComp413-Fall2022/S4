@@ -10,11 +10,12 @@ def do_not_mutate_keys_json():
         keys_to_files = json.load(f)
 
     # test will be run here
-    yield 
+    yield
 
     # restore keys.json to original state
     with open("../keys.json", "w") as f:
         f.write(json.dumps(keys_to_files))
+
 
 def test_landing(app, client):
     del app
@@ -22,12 +23,12 @@ def test_landing(app, client):
     assert response.status_code == 200
 
 
-def test_generate_key(client):
-    response = client.get("/S4/GenerateKey")
-    assert response.status_code == 200
-    assert response
-    assert response.data is not None
-    # assert len(response.data["Key"]) == 16
+# def test_generate_key(client):
+#     response = client.get("/S4/GenerateKey")
+#     assert response.status_code == 200
+#     assert response
+#     assert response.data is not None
+#     # assert len(response.data["Key"]) == 16
 
 
 def test_put_object(client):

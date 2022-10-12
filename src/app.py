@@ -9,6 +9,10 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.utils import secure_filename
 from werkzeug.datastructures import FileStorage
 
+from security import api_required
+
+authorizations = {"apikey": {"type": "apiKey", "in": "header", "name": "X-API-KEY"}}
+
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app)
 api = Api(
@@ -16,6 +20,8 @@ api = Api(
     version="0.0.1",
     title="S4",
     description="Super Simple Storage System",
+    authorizations=authorizations,
+    security="apikey",
 )
 
 ns = api.namespace("S4", description="S4 API Endpoints")
@@ -157,6 +163,7 @@ class getObject(Resource):
     @api.response(200, "Success", model=GetObject200)
     @api.response(400, "Error: Bad Request", model=GetObject400)
     @api.response(404, "Error: Not Found", model=GetObject404)
+    @api_required
     def get(self):
         # TODO: make into a DAO layer with transactions
         with open("../keys.json", "r") as f:
@@ -189,6 +196,7 @@ class putObject(Resource):
     @api.response(201, "Object successfully saved", model=PutObject201)
     @api.response(400, "Error: Bad Request", model=PutObject400)
     @api.response(404, "Error: Not Found", model=PutObject404)
+    @api_required
     def put(self):
         with open("../keys.json", "r") as f:
             keys_to_files = json.load(f)
@@ -230,6 +238,7 @@ class putObject(Resource):
 class listObjects(Resource):
     @ns.doc("ListObjects")
     @api.response(200, "Success", model=ListObjects200)
+    @api_required
     def get(self):
         with open("../keys.json", "r") as f:
             keys_to_files = json.load(f)
@@ -246,6 +255,7 @@ class deleteObject(Resource):
     @api.response(200, "Success", model=DeleteObject200)
     @api.response(400, "Error: Bad Request", model=DeleteObject400)
     @api.response(404, "Error: Not Found", model=DeleteObject404)
+    @api_required
     def put(self):
         with open("../keys.json", "r") as f:
             keys_to_files = json.load(f)

@@ -2,10 +2,6 @@ import functools
 from flask import request
 
 
-def is_valid(api_key):
-    return api_key == "ssss"
-
-
 def api_required(func):
     @functools.wraps(func)
     def decorator(*args, **kwargs):

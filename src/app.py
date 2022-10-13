@@ -135,7 +135,7 @@ DeleteObject200 = api.model(
     },
 )
 
-FILE_PATH = "./tests"
+FILE_PATH = "../tests"
 # FILE_PATH = os.getenv("FILE_PATH")
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Endpoint parameters ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -166,7 +166,7 @@ class getObject(Resource):
     @api_required
     def get(self):
         # TODO: make into a DAO layer with transactions
-        with open("./keys.json", "r") as f:
+        with open("../keys.json", "r") as f:
             keys_to_files = json.load(f)
 
         # get the key from the request parameters
@@ -182,7 +182,7 @@ class getObject(Resource):
         # try to get the file
         try:
             return send_file(
-                os.path.join("../" + FILE_PATH, Key), download_name=keys_to_files[Key]
+                os.path.join(FILE_PATH, Key), download_name=keys_to_files[Key]
             )
         except:
             return {"msg": "Invalid file specified"}, 404
@@ -198,7 +198,7 @@ class putObject(Resource):
     @api.response(404, "Error: Not Found", model=PutObject404)
     @api_required
     def put(self):
-        with open("./keys.json", "r") as f:
+        with open("../keys.json", "r") as f:
             keys_to_files = json.load(f)
 
         # get the key from the request parameters
@@ -227,7 +227,7 @@ class putObject(Resource):
             else:
                 keys_to_files[Key] = filename
                 file.save(os.path.join(FILE_PATH, Key))
-                with open("./keys.json", "w") as f:
+                with open("../keys.json", "w") as f:
                     f.write(json.dumps(keys_to_files))
 
         return {"msg": "File successfully saved"}, 201
@@ -240,7 +240,7 @@ class listObjects(Resource):
     @api.response(200, "Success", model=ListObjects200)
     @api_required
     def get(self):
-        with open("./keys.json", "r") as f:
+        with open("../keys.json", "r") as f:
             keys_to_files = json.load(f)
         return {"msg": "Files retrieved successfully", "files": keys_to_files}, 200
 
@@ -255,7 +255,7 @@ class deleteObject(Resource):
     @api.response(404, "Error: Not Found", model=DeleteObject404)
     @api_required
     def put(self):
-        with open("./keys.json", "r") as f:
+        with open("../keys.json", "r") as f:
             keys_to_files = json.load(f)
 
         # get the key from the request parameters
@@ -270,7 +270,7 @@ class deleteObject(Resource):
 
         # remove entry from json
         keys_to_files.pop(Key)
-        with open("./keys.json", "w") as f:
+        with open("../keys.json", "w") as f:
             f.write(json.dumps(keys_to_files))
 
         # remove file from filesystem

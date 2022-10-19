@@ -14,8 +14,8 @@ app.wsgi_app = ProxyFix(app.wsgi_app)
 api = Api(
     app,
     version="0.0.1",
-    title="S4",
-    description="Super Simple Storage System",
+    title="S4 Main Node",
+    description="Super Simple Storage System Main Node",
 )
 
 ns = api.namespace("S4", description="S4 API Endpoints")
@@ -141,89 +141,38 @@ file_param.add_argument("file", location="files", type=FileStorage)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Actual endpoints ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-# ----------------------------------- GenerateKey -----------------------------------
-# @ns.route("/GenerateKey")
-# class generateKey(Resource):
-#     @ns.doc("GenerateKey")
-#     @api.response(200, "Success", model=Key200)
-#     def get(self):
-#         return {"Key": secrets.token_urlsafe(nbytes=16)}
+# ----------------------------------- StartNetwork -----------------------------------
+@app.before_first_request
+class StartNetwork(Resource):
+    @api.response(200, "Success", model=GetObject200)
+    @api.response(400, "Error: Bad Request", model=GetObject400)
+    @api.response(404, "Error: Not Found", model=GetObject404)
+    def start(self):
+        return {"msg: Not implemented"}, 501
+        
 
-# ----------------------------------- GetObject -----------------------------------
-@ns.route("/GetObject")
+# ----------------------------------- RecordPutObject -----------------------------------
+@ns.route("/RecordPutObject")
 @ns.expect(key_param)
-class getObject(Resource):
-    @ns.doc("GetObject")
+class RecordPutObject(Resource):
+    @ns.doc("RecordPutObject")
     @api.response(200, "Success", model=GetObject200)
     @api.response(400, "Error: Bad Request", model=GetObject400)
     @api.response(404, "Error: Not Found", model=GetObject404)
     def get(self):
-        # TODO: make into a DAO layer with transactions
+        return {"msg: Not implemented"}, 501
+
+# ----------------------------------- HealthCheck -----------------------------------
+@ns.route("/HealthCheck")
+class listObjects(Resource):
+    @ns.doc("HealthCheck")
+    @api.response(200, "Success", model=ListObjects200)
+    def get(self):
         with open("../keys.json", "r") as f:
             keys_to_files = json.load(f)
 
-        # get the key from the request parameters
-        args = request.args
-        Key = args.get("Key")
-
-        # check key
-        if not Key:
-            return {"msg": "Key not specified"}, 400
-        if Key not in keys_to_files:
-            return {"msg": "No object associated with key"}, 400
-
-        # try to get the file
-        try:
-            return send_file(
-                os.path.join(FILE_PATH, Key), download_name=keys_to_files[Key]
-            )
-        except:
-            return {"msg": "Invalid file specified"}, 404
-
-
-# ----------------------------------- PutObject -----------------------------------
-@ns.route("/PutObject")
-@ns.expect(file_param, key_param)
-class putObject(Resource):
-    @ns.doc("PutObject")
-    @api.response(201, "Object successfully saved", model=PutObject201)
-    @api.response(400, "Error: Bad Request", model=PutObject400)
-    @api.response(404, "Error: Not Found", model=PutObject404)
-    def put(self):
-        with open("../keys.json", "r") as f:
-            keys_to_files = json.load(f)
-
-        # get the key from the request parameters
-        args = request.args
-        Key = args.get("Key")
-
-        # key checks
-        if not Key:
-            return {"msg": "Key not specified"}, 400
-        if Key in keys_to_files:
-            return {"msg": "Key not unique"}, 400
-
-        # need a response body with a file in it
-        if "file" not in request.files:
-            return {"msg": "No file specified"}, 404
-
-        args = file_param.parse_args()
-        file = args.get("file")
-
-        # file checks
-        if file:
-            filename = secure_filename(file.filename)
-            if not filename:
-                flash("Empty filepath")
-                return {"msg": "Empty filename"}, 400
-            else:
-                keys_to_files[Key] = filename
-                file.save(os.path.join(FILE_PATH, Key))
-                with open("../keys.json", "w") as f:
-                    f.write(json.dumps(keys_to_files))
-
-        return {"msg": "File successfully saved"}, 201
-
+        file_names = [keys_to_files[key] for key in keys_to_files]
+        return {"msg": "Files retrieved successfully", "files": file_names}, 200
 
 # ----------------------------------- ListObjects -----------------------------------
 @ns.route("/ListObjects")
@@ -247,30 +196,32 @@ class deleteObject(Resource):
     @api.response(400, "Error: Bad Request", model=DeleteObject400)
     @api.response(404, "Error: Not Found", model=DeleteObject404)
     def put(self):
-        with open("../keys.json", "r") as f:
-            keys_to_files = json.load(f)
+        return {"msg: Not implemented"}, 501
 
-        # get the key from the request parameters
-        args = request.args
-        Key = args.get("Key")
+# ----------------------------------- ListObject -----------------------------------
+@ns.route("/ListObject")
+@ns.expect(key_param)
+class deleteObject(Resource):
+    @ns.doc("ListObject")
+    @api.response(200, "Success", model=DeleteObject200)
+    @api.response(400, "Error: Bad Request", model=DeleteObject400)
+    @api.response(404, "Error: Not Found", model=DeleteObject404)
+    def put(self):
+        return {"msg: Not implemented"}, 501
 
-        # key checks
-        if not Key:
-            return {"msg": "Key not specified"}, 400
-        if Key not in keys_to_files:
-            return {"msg": "Key does not exist"}, 404
-
-        # remove entry from json
-        keys_to_files.pop(Key)
-        with open("../keys.json", "w") as f:
-            f.write(json.dumps(keys_to_files))
-
-        # remove file from filesystem
-        os.remove(os.path.join(FILE_PATH, Key))
-
-        return {"msg": "File deleted successfully"}, 200
-
+# ----------------------------------- FindObject -----------------------------------
+@ns.route("/FindObject")
+@ns.expect(key_param)
+class deleteObject(Resource):
+    @ns.doc("FindObject")
+    @api.response(200, "Success", model=DeleteObject200)
+    @api.response(400, "Error: Bad Request", model=DeleteObject400)
+    @api.response(404, "Error: Not Found", model=DeleteObject404)
+    def put(self):
+        return {"msg: Not implemented"}, 501
 
 # Main
 if __name__ == "__main__":
+    startNetwork = StartNetwork()
     app.run(debug=True)
+    app.before_first_request(startNetwork.start())

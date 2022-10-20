@@ -175,6 +175,8 @@ class get_object(Resource):
         #TODO ask main if key exists
         
 
+        #hash the filename/key
+
         #TODO perform linear traversal to retrieve the file
         #call _get_object() on the nodes
 
@@ -193,7 +195,7 @@ class put_object(Resource):
         key = args.get("Key")
         bits = hashlib.md5(key)
         node_idx = int(bits) % len(url_array)
-        
+        print(node_idx)
         
 
         # key checks
@@ -215,6 +217,7 @@ class put_object(Resource):
             if not filename:
                 return {"msg": "Empty filename"}, 400
             else:
+                return 200
                 #hash filename to determine the primary replica
                 #perform linear traversal of the nodes to determine what file to save on
                 
@@ -265,6 +268,62 @@ class delete_object(Resource):
         os.remove(os.path.join(FILE_PATH, Key))
 
         return {"msg": "File deleted successfully"}, 200
+
+# ----------------------------------- Internal Endpoints -----------------------------------
+
+#TODO decide what the internal endpoints link should look like
+
+@ns.route("/_GetObject") 
+class _get_object(Resource):
+    @ns.doc("_GetObject")
+    #TODO add api response model
+    def get(self):
+        
+        return 200
+
+@ns.route("/_PutObject") 
+class _put_object(Resource):
+    @ns.doc("_PutObject")
+    #TODO add api response model
+    def put(self):
+        
+        return 200
+
+@ns.route("/_DeleteObject") 
+class _delete_object(Resource):
+    @ns.doc("_DeleteObject")
+    #TODO add api response model
+    def put(self):
+        
+        return 200
+
+@ns.route("/_JoinNetwork")
+class _join_network(Resource):
+    @ns.doc("_JoinNetwork")
+    #TODO add api response model
+    def get(self): #TODO is this get
+        
+        return 200
+
+@ns.route("/_SetWorkers") 
+class _set_workers(Resource):
+    @ns.doc("_SetWorkers")
+    #TODO add api response model
+    def put(self):
+        
+        return 200
+
+
+# -----------------------------------Helper Functions -----------------------------------
+
+
+def _forward_object(filename): #TODO decide if this should be filename or key
+    return 0
+
+
+def hash(filename): #TODO decide if this should be filename or key
+    return 0
+
 
 
 # Main

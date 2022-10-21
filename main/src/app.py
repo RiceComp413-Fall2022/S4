@@ -1,6 +1,7 @@
 import secrets, os
 import atexit
 import json
+import requests
 
 from flask import Flask, request, flash, send_file
 from flask_restx import Api, Resource, fields
@@ -130,6 +131,15 @@ DeleteObject200 = api.model(
 )
 
 FILE_PATH = "../tests"
+ALL_WORKERS = [
+    "http://127.0.0.1:5001/",
+    "http://127.0.0.1:5002/",
+    "http://127.0.0.1:5003/",
+    "http://127.0.0.1:5004/",
+    "http://127.0.0.1:5005/",
+]
+healthy_workers = []
+
 # FILE_PATH = os.getenv("FILE_PATH")
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Endpoint parameters ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -148,19 +158,25 @@ class StartNetwork(Resource):
     @api.response(400, "Error: Bad Request", model=GetObject400)
     @api.response(404, "Error: Not Found", model=GetObject404)
     def start(self):
-        return {"msg: Not implemented"}, 501
-        
+        for worker in ALL_WORKERS:
+            r = requests.get(url=worker + "_joinNetwork", timeout=5)
+            if r.status_code == 200:
+                healthy_workers.append(worker)
+        for worker in healthy_workers:
+            r = requests.put(
+                url=worker + "_setWorkers",
+                params={"workers": healthy_workers},
+                timeout=5,
+            )
+        if len(healthy_workers) == len(ALL_WORKERS):
+            return {"msg": "Success"}, 200
+        elif len(healthy_workers) > 0:
+            return {
+                "msg": f"Partial success, launched {len(healthy_workers)} out of {len(ALL_WORKERS)} workers"
+            }, 200
+        else:
+            return {"msg": "Failed to launch worker nodes"}, 500
 
-# ----------------------------------- RecordPutObject -----------------------------------
-@ns.route("/RecordPutObject")
-@ns.expect(key_param)
-class RecordPutObject(Resource):
-    @ns.doc("RecordPutObject")
-    @api.response(200, "Success", model=GetObject200)
-    @api.response(400, "Error: Bad Request", model=GetObject400)
-    @api.response(404, "Error: Not Found", model=GetObject404)
-    def get(self):
-        return {"msg: Not implemented"}, 501
 
 # ----------------------------------- HealthCheck -----------------------------------
 @ns.route("/HealthCheck")
@@ -173,6 +189,19 @@ class listObjects(Resource):
 
         file_names = [keys_to_files[key] for key in keys_to_files]
         return {"msg": "Files retrieved successfully", "files": file_names}, 200
+
+
+# ----------------------------------- RecordPutObject -----------------------------------
+@ns.route("/RecordPutObject")
+@ns.expect(key_param)
+class RecordPutObject(Resource):
+    @ns.doc("RecordPutObject")
+    @api.response(200, "Success", model=GetObject200)
+    @api.response(400, "Error: Bad Request", model=GetObject400)
+    @api.response(404, "Error: Not Found", model=GetObject404)
+    def post(self):
+        return {"msg: Not implemented"}, 501
+
 
 # ----------------------------------- ListObjects -----------------------------------
 @ns.route("/ListObjects")
@@ -195,19 +224,9 @@ class deleteObject(Resource):
     @api.response(200, "Success", model=DeleteObject200)
     @api.response(400, "Error: Bad Request", model=DeleteObject400)
     @api.response(404, "Error: Not Found", model=DeleteObject404)
-    def put(self):
+    def post(self):
         return {"msg: Not implemented"}, 501
 
-# ----------------------------------- ListObject -----------------------------------
-@ns.route("/ListObject")
-@ns.expect(key_param)
-class deleteObject(Resource):
-    @ns.doc("ListObject")
-    @api.response(200, "Success", model=DeleteObject200)
-    @api.response(400, "Error: Bad Request", model=DeleteObject400)
-    @api.response(404, "Error: Not Found", model=DeleteObject404)
-    def put(self):
-        return {"msg: Not implemented"}, 501
 
 # ----------------------------------- FindObject -----------------------------------
 @ns.route("/FindObject")
@@ -217,8 +236,9 @@ class deleteObject(Resource):
     @api.response(200, "Success", model=DeleteObject200)
     @api.response(400, "Error: Bad Request", model=DeleteObject400)
     @api.response(404, "Error: Not Found", model=DeleteObject404)
-    def put(self):
+    def get(self):
         return {"msg: Not implemented"}, 501
+
 
 # Main
 if __name__ == "__main__":

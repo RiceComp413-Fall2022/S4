@@ -1,6 +1,7 @@
 import secrets, os
 import atexit
 import json
+import time
 import requests
 
 from flask import Flask, request, flash, send_file
@@ -138,7 +139,6 @@ ALL_WORKERS = [
     "http://127.0.0.1:5002/",
     "http://127.0.0.1:5003/",
     "http://127.0.0.1:5004/",
-    "http://127.0.0.1:5005/",
 ]
 healthy_workers = []
 
@@ -157,31 +157,26 @@ file_param.add_argument("file", location="files", type=FileStorage)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Actual endpoints ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # ----------------------------------- StartNetwork -----------------------------------
-# class StartNetwork(Resource):
-#     @api.response(200, "Success", model=GetObject200)
-#     @api.response(400, "Error: Bad Request", model=GetObject400)
-#     @api.response(404, "Error: Not Found", model=GetObject404)
 @app.before_first_request
 def start():
     for worker in ALL_WORKERS:
         try:
-            r = requests.get(url=worker + "_joinNetwork", timeout=TIMEOUT)
-            if r.status_code == 200:
+            r = requests.get(url=worker + "_joinNetwork", 
+                             timeout=TIMEOUT)
+            if r.status_code == 200: 
                 healthy_workers.append(worker)
         except:
             pass
     for worker in healthy_workers:
         try:
-            r = requests.put(
-                url=worker + "_setWorkers",
-                params={"workers": healthy_workers},
-                timeout=TIMEOUT,
-            )
+            r = requests.put(url=worker + "_setWorkers", 
+                             params={"workers": healthy_workers}, 
+                             timeout=TIMEOUT)
         except:
             pass
-    print(
-        f"******** Launched {len(healthy_workers)} / {len(ALL_WORKERS)} nodes ********"
-    )
+
+    print(f"******** Launched {len(healthy_workers)} / {len(ALL_WORKERS)} nodes ********")
+    
     if len(healthy_workers) == len(ALL_WORKERS):
         return {"msg": "Success"}, 200
     elif len(healthy_workers) > 0:
@@ -193,14 +188,23 @@ def start():
 
 
 # ----------------------------------- HealthCheck -----------------------------------
-@ns.route("/HealthCheck")
-class listObjects(Resource):
-    @ns.doc("HealthCheck")
-    @api.response(200, "Success", model=ListObjects200)
-    def get(self):
-        return {"msg": "Not implemented"}, 501
+@app.before_first_request
+def healthCheckWrapper():
+    starttime = time.time()
+    while True:
+        print(healthCheck())
+        time.sleep(60.0 - ((time.time() - starttime) % 60.0))
+        
+    # @ns.doc("HealthCheck")
+    # @api.response(200, "Success", model=ListObjects200)
 
+def healthCheck():
+    result = ""
+    # {"msg": "Not implemented"}, 501
+    #result + "stuff"
+    return result
 
+    
 # ----------------------------------- RecordPutObject -----------------------------------
 @ns.route("/RecordPutObject")
 @ns.expect(key_param)
@@ -260,4 +264,3 @@ class deleteObject(Resource):
 # Main
 if __name__ == "__main__":
     app.run(debug=True)
-    # print(start())

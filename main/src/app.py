@@ -138,6 +138,7 @@ ALL_WORKERS = [
     "http://127.0.0.1:5004/",
     "http://127.0.0.1:5005/",
 ]
+TIMEOUT = 0.1
 healthy_workers = []
 
 # FILE_PATH = os.getenv("FILE_PATH")
@@ -152,30 +153,39 @@ file_param.add_argument("file", location="files", type=FileStorage)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Actual endpoints ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # ----------------------------------- StartNetwork -----------------------------------
+# class StartNetwork(Resource):
+#     @api.response(200, "Success", model=GetObject200)
+#     @api.response(400, "Error: Bad Request", model=GetObject400)
+#     @api.response(404, "Error: Not Found", model=GetObject404)
 @app.before_first_request
-class StartNetwork(Resource):
-    @api.response(200, "Success", model=GetObject200)
-    @api.response(400, "Error: Bad Request", model=GetObject400)
-    @api.response(404, "Error: Not Found", model=GetObject404)
-    def start(self):
-        for worker in ALL_WORKERS:
-            r = requests.get(url=worker + "_joinNetwork", timeout=5)
+def start():
+    for worker in ALL_WORKERS:
+        try:
+            r = requests.get(url=worker + "_joinNetwork", timeout=TIMEOUT)
             if r.status_code == 200:
                 healthy_workers.append(worker)
-        for worker in healthy_workers:
+        except:
+            pass
+    for worker in healthy_workers:
+        try:
             r = requests.put(
                 url=worker + "_setWorkers",
                 params={"workers": healthy_workers},
-                timeout=5,
+                timeout=TIMEOUT,
             )
-        if len(healthy_workers) == len(ALL_WORKERS):
-            return {"msg": "Success"}, 200
-        elif len(healthy_workers) > 0:
-            return {
-                "msg": f"Partial success, launched {len(healthy_workers)} out of {len(ALL_WORKERS)} workers"
-            }, 200
-        else:
-            return {"msg": "Failed to launch worker nodes"}, 500
+        except:
+            pass
+    print(
+        f"******** Launched {len(healthy_workers)} / {len(ALL_WORKERS)} nodes ********"
+    )
+    if len(healthy_workers) == len(ALL_WORKERS):
+        return {"msg": "Success"}, 200
+    elif len(healthy_workers) > 0:
+        return {
+            "msg": f"Partial success, launched {len(healthy_workers)} out of {len(ALL_WORKERS)} workers"
+        }, 200
+    else:
+        return {"msg": "Failed to launch worker nodes"}, 500
 
 
 # ----------------------------------- HealthCheck -----------------------------------
@@ -184,11 +194,7 @@ class listObjects(Resource):
     @ns.doc("HealthCheck")
     @api.response(200, "Success", model=ListObjects200)
     def get(self):
-        with open("../keys.json", "r") as f:
-            keys_to_files = json.load(f)
-
-        file_names = [keys_to_files[key] for key in keys_to_files]
-        return {"msg": "Files retrieved successfully", "files": file_names}, 200
+        return {"msg": "Not implemented"}, 501
 
 
 # ----------------------------------- RecordPutObject -----------------------------------
@@ -200,7 +206,7 @@ class RecordPutObject(Resource):
     @api.response(400, "Error: Bad Request", model=GetObject400)
     @api.response(404, "Error: Not Found", model=GetObject404)
     def post(self):
-        return {"msg: Not implemented"}, 501
+        return {"msg": "Not implemented"}, 501
 
 
 # ----------------------------------- ListObjects -----------------------------------
@@ -209,11 +215,7 @@ class listObjects(Resource):
     @ns.doc("ListObjects")
     @api.response(200, "Success", model=ListObjects200)
     def get(self):
-        with open("../keys.json", "r") as f:
-            keys_to_files = json.load(f)
-
-        file_names = [keys_to_files[key] for key in keys_to_files]
-        return {"msg": "Files retrieved successfully", "files": file_names}, 200
+        return {"msg": "Not implemented"}, 501
 
 
 # ----------------------------------- DeleteObject -----------------------------------
@@ -225,7 +227,7 @@ class deleteObject(Resource):
     @api.response(400, "Error: Bad Request", model=DeleteObject400)
     @api.response(404, "Error: Not Found", model=DeleteObject404)
     def post(self):
-        return {"msg: Not implemented"}, 501
+        return {"msg": "Not implemented"}, 501
 
 
 # ----------------------------------- FindObject -----------------------------------
@@ -237,11 +239,10 @@ class deleteObject(Resource):
     @api.response(400, "Error: Bad Request", model=DeleteObject400)
     @api.response(404, "Error: Not Found", model=DeleteObject404)
     def get(self):
-        return {"msg: Not implemented"}, 501
+        return {"msg": "Not implemented"}, 501
 
 
 # Main
 if __name__ == "__main__":
-    startNetwork = StartNetwork()
     app.run(debug=True)
-    app.before_first_request(startNetwork.start())
+    # print(start())

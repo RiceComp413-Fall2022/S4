@@ -130,7 +130,9 @@ DeleteObject200 = api.model(
     },
 )
 
+TIMEOUT = 0.1
 FILE_PATH = "../tests"
+# FILE_PATH = os.getenv("FILE_PATH")
 ALL_WORKERS = [
     "http://127.0.0.1:5001/",
     "http://127.0.0.1:5002/",
@@ -138,10 +140,12 @@ ALL_WORKERS = [
     "http://127.0.0.1:5004/",
     "http://127.0.0.1:5005/",
 ]
-TIMEOUT = 0.1
 healthy_workers = []
 
-# FILE_PATH = os.getenv("FILE_PATH")
+key_to_filename = {}  # string to string
+key_to_nodes = {}  # string to list[int]
+node_to_keys = {}  # int to set[string]
+
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Endpoint parameters ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 key_param = ns.parser()
@@ -206,7 +210,14 @@ class RecordPutObject(Resource):
     @api.response(400, "Error: Bad Request", model=GetObject400)
     @api.response(404, "Error: Not Found", model=GetObject404)
     def post(self):
-        return {"msg": "Not implemented"}, 501
+        # TODO check that request comes from worker
+        body = request.json
+        key, filename, nodes = body["key"], body["filename"], body["nodes"]
+        self.key_to_filename[key] = filename
+        self.filename_to_nodes[filename] = nodes
+        for node in nodes:
+            self.node_to_keys[node].add(key)
+        return {"msg": "Success"}, 200
 
 
 # ----------------------------------- ListObjects -----------------------------------
@@ -215,7 +226,7 @@ class listObjects(Resource):
     @ns.doc("ListObjects")
     @api.response(200, "Success", model=ListObjects200)
     def get(self):
-        return {"msg": "Not implemented"}, 501
+        return {"msg": "Success", "objects": key_to_filename}, 200
 
 
 # ----------------------------------- DeleteObject -----------------------------------
@@ -239,7 +250,11 @@ class deleteObject(Resource):
     @api.response(400, "Error: Bad Request", model=DeleteObject400)
     @api.response(404, "Error: Not Found", model=DeleteObject404)
     def get(self):
-        return {"msg": "Not implemented"}, 501
+        key = request.json["key"]
+        if key in key_to_filename:
+            return {"found": True, "filename": key_to_filename[key]}, 200
+        else:
+            return {"found": False, "filname": None}
 
 
 # Main

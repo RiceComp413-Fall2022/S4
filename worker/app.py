@@ -336,7 +336,7 @@ class delete_object(Resource):
         else:
             # TODO: better way to do this?
             return {"msg": r.json()["msg"]}, r.status_code
-            
+
 
 # ----------------------------------- Internal Endpoints -----------------------------------
 
@@ -384,12 +384,23 @@ class _put_object(Resource):
         return {"msg": "Object successfully saved"}, 201
 
 @ns.route("/_DeleteObject") 
+@ns.expect(key_param)
 class _delete_object(Resource):
     @ns.doc("_DeleteObject")
     #TODO add api response model
     def put(self):
+        args = request.args
+        key = args.get("key")
+
+        try:
+            # remove file from filesystem
+            os.remove(os.path.join(FILE_PATH, key))
+            return {"msg": "Object successfully deleted."}, 200
+        except FileNotFoundError:
+            return {"msg": f"Object with key {key} not found."}, 404
+        except Exception as e:
+            return {"msg": f"A {type(e).__name__} occurred while trying to delete the object."}, 400
         
-        return 200
 
 @ns.route("/_JoinNetwork")
 class _join_network(Resource):

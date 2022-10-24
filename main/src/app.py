@@ -121,7 +121,7 @@ def start():
     for worker in healthy_workers:
         try:
             r = requests.put(url=worker + "_setWorkers", 
-                             params={"workers": healthy_workers}, 
+                             params={"workers": healthy_workers, "workerIndex": healthy_workers.index(worker)}, 
                              timeout=TIMEOUT)
         except:
             pass
@@ -144,13 +144,50 @@ def healthCheckWrapper():
     starttime = time.time()
     while True:
         print(healthCheck())
-        time.sleep(60.0 - ((time.time() - starttime) % 60.0))
-        
-    # @ns.doc("HealthCheck")
-    # @api.response(200, "Success", model=ListObjects200)
+        time.sleep(60.0 - ((time.time() - starttime) % 60.0)) # currently called once every 60 seconds
 
 def healthCheck():
     result = ""
+    healthyWorkers = []
+    downWorkers = []
+
+    # Get the healthy and not healthy workers
+    for worker in ALL_WORKERS:
+        try:
+            r = requests.get(url = worker + "/HealthCheck", timeout = TIMEOUT)
+            
+            if r.status_code == 200: # success
+                healthyWorkers.append(worker)
+            elif r.status_code == 503: # server is down/overloaded
+                downWorkers.append(worker)
+        except:
+            pass
+        
+    # key_to_filename = {}  # string to string
+    # key_to_nodes = {}  # string to list[int]
+    # node_to_keys = {}  # int to set[string]
+    
+    for downNode in downWorkers:
+        # get the object that was in this downNode from a node that's up and has a copy of that object
+        for key in node_to_keys.get(downWorkers.index(downNode)):
+            for healthyNode in healthyWorkers:
+                if key in node_to_keys.get(healthyWorkers.index(healthyNode)):
+                    
+                
+        
+        # get a single node that is healthy and doesn't have a copy of that object that's closest to the node that's down
+        
+        # for each object, forward the object from the node with the copy to the node that's closest to the down node.
+        # node._forward_object(thoseKeys, node2)
+        try:
+            r = requests.get(url = worker)
+        for object in downNode.
+            
+       for node in nodes:
+            self.node_to_keys[node].add(key)        
+            
+            
+    
     # {"msg": "Not implemented"}, 501
     #result + "stuff"
     return result

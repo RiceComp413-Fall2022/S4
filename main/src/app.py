@@ -22,66 +22,9 @@ api = Api(
 ns = api.namespace("S4", description="S4 API Endpoints")
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~ API Model for example header/body and the response ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Key200 = api.model(
-    "Key",
-    {
-        "Key": fields.String(
-            description="Newly generated API key",
-            example="j4ZRylUaPzz1wv2pahMYBA",
-        ),
-    },
-)
 
-GetObject400 = api.model(
-    "GetObject",
-    {
-        "msg": fields.String(
-            example="'Key not specified' or 'No object associated with key'}",
-        ),
-    },
-)
-
-GetObject404 = api.model(
-    "GetObject2",
-    {
-        "msg": fields.String(
-            example="Invalid file specified",
-        ),
-    },
-)
-
-GetObject200 = api.model(
-    "GetObject3",
-    {
-        "GetObject": fields.String(
-            required=True,
-            description="Get an object by the object name (like bject ID or object HASH)",
-            example="For now, it's the actual filename, like bob.txt. We will eventually replace filename with the"
-            + "object's actual ID/HASH.",
-        ),
-    },
-)
-
-PutObject400 = api.model(
-    "PutObject",
-    {
-        "msg": fields.String(
-            example="'Empty filepath' or 'Key not specified' or 'Key not unique'",
-        ),
-    },
-)
-
-PutObject404 = api.model(
-    "PutObject2",
-    {
-        "msg": fields.String(
-            example="No file specified",
-        ),
-    },
-)
-
-PutObject201 = api.model(
-    "PutObject3",
+RecordPutObject200 = api.model(
+    "RecordPutObject Success",
     {
         "msg": fields.String(
             required=True,
@@ -93,7 +36,7 @@ PutObject201 = api.model(
 )
 
 ListObjects200 = api.model(
-    "ListObjects",
+    "ListObjects Success",
     {
         "msg": fields.String(
             description="Success message",
@@ -101,34 +44,42 @@ ListObjects200 = api.model(
         ),
         "files": fields.String(
             description="List of object names in storage.",
-            example="['image.jpeg', 'file.txt', 'test.pdf']",
+            example="{'key1': 'image.jpeg', 'key2': 'file.txt', 'key3': 'test.pdf'}",
         ),
     },
 )
 
-DeleteObject400 = api.model(
-    "Deletebject",
-    {
-        "Key": fields.String(example="Key not specified"),
-    },
-)
-
-DeleteObject404 = api.model(
-    "Deletebject2",
-    {
-        "Key": fields.String(example="Key does not exist"),
-    },
-)
-
 DeleteObject200 = api.model(
-    "Deletebject3",
+    "DeleteObject Success",
     {
-        "Key": fields.String(
+        "msg": fields.String(
             description="Deletes an object store on the local filesystem.",
             example="File deleted successfully",
         ),
     },
 )
+DeleteObject404 = api.model(
+    "DeleteObject Key Not Found",
+    {
+        "msg": fields.String(example="Key does not exist"),
+    },
+)
+
+FindObject200 = api.model(
+    "FindObject Success",
+    {
+        "found": fields.String(example="true"),
+        "filename": fields.String(example="file.txt"),
+    },
+)
+
+FindObject404 = api.model(
+    "FindObject Key Not Found",
+    {
+        "found": fields.String(example="false"),
+    },
+)
+
 
 TIMEOUT = 0.1
 FILE_PATH = "../tests"
@@ -206,9 +157,7 @@ class listObjects(Resource):
 @ns.expect(key_param)
 class RecordPutObject(Resource):
     @ns.doc("RecordPutObject")
-    @api.response(200, "Success", model=GetObject200)
-    @api.response(400, "Error: Bad Request", model=GetObject400)
-    @api.response(404, "Error: Not Found", model=GetObject404)
+    @api.response(200, "Success", model=RecordPutObject200)
     def post(self):
         # TODO check that request comes from worker
         body = request.json
@@ -235,7 +184,6 @@ class listObjects(Resource):
 class deleteObject(Resource):
     @ns.doc("DeleteObject")
     @api.response(200, "Success", model=DeleteObject200)
-    @api.response(400, "Error: Bad Request", model=DeleteObject400)
     @api.response(404, "Error: Not Found", model=DeleteObject404)
     def post(self):
         return {"msg": "Not implemented"}, 501
@@ -246,15 +194,14 @@ class deleteObject(Resource):
 @ns.expect(key_param)
 class deleteObject(Resource):
     @ns.doc("FindObject")
-    @api.response(200, "Success", model=DeleteObject200)
-    @api.response(400, "Error: Bad Request", model=DeleteObject400)
-    @api.response(404, "Error: Not Found", model=DeleteObject404)
+    @api.response(200, "Success", model=FindObject200)
+    @api.response(404, "Error: Not Found", model=FindObject404)
     def get(self):
         key = request.json["key"]
         if key in key_to_filename:
             return {"found": True, "filename": key_to_filename[key]}, 200
         else:
-            return {"found": False, "filname": None}
+            return {"found": False}, 404
 
 
 # Main

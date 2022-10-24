@@ -195,6 +195,7 @@ class get_object(Resource):
             if res:
                 return res
 
+        # TODO: do we need file name?
         #try the first node
         r = requests.get(url_array[curr_replica] + "/_GetObject", params={"key":key, "filename": filename})
         if r.status_code == 200:
@@ -206,6 +207,7 @@ class get_object(Resource):
             r = requests.get(url_array[curr_replica] + "/_GetObject", params={"key":key, "filename": filename})
             if r.status_code == 200:
                 return r
+            curr_replica = (curr_replica + 1) % len(url_array)
 
         return {"msg":"Invalid file specified"}, 404
 
@@ -238,7 +240,7 @@ class put_object(Resource):
         if not filename:
             return {"msg": "Empty filename"}, 400
 
-        #check if key is unique
+        # check if key is unique
         r = requests.get(url=main_url + "/FindObject")
 
         if r.status_code == 200:
@@ -256,27 +258,28 @@ class put_object(Resource):
         start_replica = curr_replica
         replica_nodes = []
         if curr_replica == node_number:
-            #this node is the primary replica
+            # this node is the primary replica
             success = save_object(file, key)
             if success:
-                replicas-=1
+                replicas -= 1
                 replica_nodes.append(curr_replica)
-                curr_replica+=1
+                curr_replica += 1
         
         while replicas != 0:
-            r = requests.put(url_array[curr_replica] + "/_PutObject", params={"key":key}, files={"file": file})
+            r = requests.put(url_array[curr_replica] + "/_PutObject", params={"key": key}, files={"file": file})
             if r.status_code == 201:
                 replicas -= 1
                 replica_nodes.append(curr_replica)
 
-            curr_replica +=1
+            curr_replica += 1
 
             if curr_replica == start_replica:
                 #already performed linear traversal once
                 #TODO do we return successful anyways??
                 break;
         
-        #Record data in main node
+        # TODO: do we need key and filename? why data vs. params?
+        # Record data in main node
         r = requests.post(main_url + "/RecordPutObject", data={"key": key, "filename": filename, "nodes": replica_nodes}, headers={'content-type':'text/plain'},)
         
         return {"msg": "File successfully saved"}, 201
@@ -288,10 +291,27 @@ class list_objects(Resource):
     @ns.doc("ListObjects")
     @api.response(200, "Success", model=ListObjects200)
     def get(self):
-        
-        #TODO ask main node 
+        #TODO: how to get list of keys?
+        # Get key to file name mapping from main node
+        r = requests.get(url=main_url + "/ListObjects")
+        if r.status_code == 200:
+            response = r.json()
+            keys = os.listdir(FILE_PATH)
+            keys_to_filenames = response["objects"]
+            file_names = []
 
-        return {"msg": "Files retrieved successfully", "files": file_names}, 200
+            # Get file names corresponding to keys on current node
+            for key in keys:
+                if key in keys_to_filenames:
+                    file_names.append(keys_to_filenames[keys])
+                else:
+                    # TODO: throw error if key not in main node?
+                    return
+            return {"msg": "Files retrieved successfully.", "files": file_names}, 200
+        elif r.status_code == 500:
+            return {"msg": "The main node could not return the object mapping."}, 404
+        else:
+            return {"msg": "There was an error retrieving object names."}, r.status_code
 
 
 # ----------------------------------- DeleteObject -----------------------------------
@@ -303,28 +323,20 @@ class delete_object(Resource):
     @api.response(400, "Error: Bad Request", model=DeleteObject400)
     @api.response(404, "Error: Not Found", model=DeleteObject404)
     def put(self):
-        with open("../keys.json", "r") as f:
-            keys_to_files = json.load(f)
-
         # get the key from the request parameters
         args = request.args
-        Key = args.get("Key")
-
-        # key checks
-        if not Key:
+        key = args.get("key")
+        if not key:
             return {"msg": "Key not specified"}, 400
-        if Key not in keys_to_files:
-            return {"msg": "Key does not exist"}, 404
+        
+        r = requests.post(main_url + "/DeleteObject", params={"key": key})
 
-        # remove entry from json
-        keys_to_files.pop(Key)
-        with open("../keys.json", "w") as f:
-            f.write(json.dumps(keys_to_files))
-
-        # remove file from filesystem
-        os.remove(os.path.join(FILE_PATH, Key))
-
-        return {"msg": "File deleted successfully"}, 200
+        if r.status_code == 200:
+            return {"msg": "The object was deleted successfully."}, 200
+        else:
+            # TODO: better way to do this?
+            return {"msg": r.json()["msg"]}, r.status_code
+            
 
 # ----------------------------------- Internal Endpoints -----------------------------------
 

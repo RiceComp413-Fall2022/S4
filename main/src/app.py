@@ -3,6 +3,10 @@ import atexit
 import json
 import time
 import requests
+import math
+
+from time import sleep
+from threading import Timer
 
 from flask import Flask, request, flash, send_file
 from flask_restx import Api, Resource, fields
@@ -81,22 +85,44 @@ FindObject404 = api.model(
     },
 )
 
-
 TIMEOUT = 0.1
 FILE_PATH = "../tests"
 # FILE_PATH = os.getenv("FILE_PATH")
-ALL_WORKERS = [
-    "http://127.0.0.1:5001/",
-    "http://127.0.0.1:5002/",
-    "http://127.0.0.1:5003/",
-    "http://127.0.0.1:5004/",
-]
+ALL_WORKERS = [ "http://127.0.0.1:5001/",
+                "http://127.0.0.1:5002/",
+                "http://127.0.0.1:5003/",
+                "http://127.0.0.1:5004/",]
 healthy_workers = []
 
 key_to_filename = {}  # string to string
 key_to_nodes = {}  # string to list[int]
 node_to_keys = {}  # int to set[string]
 
+# Repeated timer 
+class RepeatedTimer(object):
+    def __init__(self, interval, function, *args, **kwargs):
+        self._timer = None
+        self.interval = interval
+        self.function = function
+        self.args = args
+        self.kwargs = kwargs
+        self.is_running = False
+        self.start()
+
+    def run(self):
+        self.is_running = False
+        self.start()
+        self.function(*self.args, **self.kwargs)
+
+    def start(self):
+        if not self.is_running:
+            self._timer = Timer(self.interval, self.run)
+            self._timer.start()
+            self.is_running = True
+
+    def stop(self):
+        self._timer.cancel()
+        self.is_running = False
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Endpoint parameters ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 key_param = ns.parser()
@@ -110,6 +136,8 @@ file_param.add_argument("file", location="files", type=FileStorage)
 # ----------------------------------- StartNetwork -----------------------------------
 @app.before_first_request
 def start():
+    rt = RepeatedTimer(60, healthCheck);
+    
     for worker in ALL_WORKERS:
         try:
             r = requests.get(url=worker + "_joinNetwork", 
@@ -139,18 +167,20 @@ def start():
 
 
 # ----------------------------------- HealthCheck -----------------------------------
-@app.before_first_request
-def healthCheckWrapper():
-    starttime = time.time()
-    while True:
-        print(healthCheck())
-        time.sleep(60.0 - ((time.time() - starttime) % 60.0)) # currently called once every 60 seconds
+# @app.before_first_request
+# def healthCheckWrapper():
+#     starttime = time.time()
+#     while True:
+#         print(healthCheck())
+#         time.sleep(60.0 - ((time.time() - starttime) % 60.0)) # currently called once every 60 seconds
 
 def healthCheck():
     result = ""
-    healthyWorkers = []
+    healthyWorkers = [] 
     downWorkers = []
 
+    print("HELLO\n\n\n")
+    
     # Get the healthy and not healthy workers
     for worker in ALL_WORKERS:
         try:
@@ -167,32 +197,38 @@ def healthCheck():
     # key_to_nodes = {}  # string to list[int]
     # node_to_keys = {}  # int to set[string]
     
-    for downNode in downWorkers:
+    forwardingToNode = -1
+    
+    for downNode in downWorkers: # for each down node
         # get the object that was in this downNode from a node that's up and has a copy of that object
-        for key in node_to_keys.get(downWorkers.index(downNode)):
-            for healthyNode in healthyWorkers:
-                if key in node_to_keys.get(healthyWorkers.index(healthyNode)):
+        for key in node_to_keys.get(downWorkers.index(downNode)): # for every file in the down node
+            for healthyNode in healthyWorkers: # for every healthy node
+                if key in node_to_keys.get(healthyWorkers.index(healthyNode)): # if healthy node has the down node file
+                    # Find a healthy node that doesn't have the down node file and is closest to the down node by hash
+                    fowardingToNode = findNodeToForwardTo(key, healthyNode, healthyWorkers, downNode)
                     
-                
-        
-        # get a single node that is healthy and doesn't have a copy of that object that's closest to the node that's down
-        
-        # for each object, forward the object from the node with the copy to the node that's closest to the down node.
-        # node._forward_object(thoseKeys, node2)
-        try:
-            r = requests.get(url = worker)
-        for object in downNode.
-            
-       for node in nodes:
-            self.node_to_keys[node].add(key)        
-            
-            
-    
-    # {"msg": "Not implemented"}, 501
-    #result + "stuff"
-    return result
+                    # ??? the worker node only has _forward_object with a filename parameter. Not one that's key + node
+                    healthyNode._forward_object(key, forwardingToNode)
 
+def findNodeToForwardTo(key, healthyNode, healthyWorkers, downNode):
+    nodeHashValue = math.inf
+    forwardingToNode = ""
     
+    for forwardToNode in healthyWorkers:
+        if key not in node_to_keys.get(healthyWorkers.index(forwardToNode)) and forwardToNode != healthyNode:
+            tempHash = nodeHash(ALL_WORKERS.index(forwardToNode), ALL_WORKERS.index(downNode))
+            if tempHash < nodeHashValue:
+                nodeHashValue = tempHash
+                fowardingToNode = forwardToNode
+    
+    return fowardingToNode
+
+# ??? Should we use the same md5 hashing like the worker node uses, or is a mod fine becuase this is for that grouping 
+# thing that we will implement later?
+def nodeHash(indexNodeA, indexNodeB):
+    # ??? can always change the hash whenever we need to
+    return (indexNodeA % 3) - (indexNodeB % 3)
+
 # ----------------------------------- RecordPutObject -----------------------------------
 @ns.route("/RecordPutObject")
 @ns.expect(key_param)
@@ -243,8 +279,7 @@ class deleteObject(Resource):
             return {"found": True, "filename": key_to_filename[key]}, 200
         else:
             return {"found": False}, 404
-
-
+        
 # Main
 if __name__ == "__main__":
     app.run(debug=True)

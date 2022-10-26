@@ -26,7 +26,7 @@ ns = api.namespace("S4", description="S4 API Endpoints")
 # Fields
 node_number = -1
 url_array = []
-main_url = ""
+main_url = "http://127.0.0.1:5000"
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~ API Model for example header/body and the response ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Key200 = api.model(
@@ -147,6 +147,12 @@ key_param.add_argument("key", type=str)
 filename_param = ns.parser()
 filename_param.add_argument("key", type=str)
 
+workers_param = ns.parser()
+workers_param.add_argument("workers", type=list[str])
+
+worker_idx_param = ns.parser()
+worker_idx_param.add_argument("workerIndex", type=int)
+
 # file_param = ns.parser()
 # file_param.add_argument("file", location="files", type=FileStorage)
 
@@ -195,7 +201,6 @@ class get_object(Resource):
             if res:
                 return res
 
-        # TODO: do we need file name?
         #try the first node
         r = requests.get(url_array[curr_replica] + "/_GetObject", params={"key":key, "filename": filename})
         if r.status_code == 200:
@@ -275,7 +280,6 @@ class put_object(Resource):
 
             if curr_replica == start_replica:
                 #already performed linear traversal once
-                #TODO do we return successful anyways??
                 break;
         
         # TODO: do we need key and filename? why data vs. params?
@@ -339,8 +343,6 @@ class delete_object(Resource):
 
 
 # ----------------------------------- Internal Endpoints -----------------------------------
-
-#TODO decide what the internal endpoints link should look like
 
 @ns.route("/_GetObject") 
 @ns.expect(key_param)
@@ -407,15 +409,19 @@ class _join_network(Resource):
     @ns.doc("_JoinNetwork")
     #TODO add api response model
     def get(self): #TODO is this get
-        
         return 200
 
 @ns.route("/_SetWorkers") 
+@ns.expect(workers_param)
+@ns.expect(worker_idx_param)
 class _set_workers(Resource):
     @ns.doc("_SetWorkers")
     #TODO add api response model
     def put(self):
-        
+        args = request.args
+        url_array = args.get("workers")
+        main_url = request.path
+        node_number = args.get("workerIndex")
         return 200
 
 
@@ -436,13 +442,6 @@ def save_object(file, key): #TODO decide if this should be filename or key
         return True
     except:
         return False
-
-
-#Probably don't need
-def _forward_object(filename): #TODO decide if this should be filename or key
-    
-    return 0
-
 
 def hash(key):
     bits = hashlib.md5(key.encode())

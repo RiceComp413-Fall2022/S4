@@ -153,6 +153,9 @@ workers_param.add_argument("workers", type=list[str])
 worker_idx_param = ns.parser()
 worker_idx_param.add_argument("workerIndex", type=int)
 
+forwarding_to_node_param = ns.parser()
+forwarding_to_node_param .add_argument("forwardingToNode", type=int)
+
 # file_param = ns.parser()
 # file_param.add_argument("file", location="files", type=FileStorage)
 
@@ -402,7 +405,18 @@ class _delete_object(Resource):
             return {"msg": f"Object with key {key} not found."}, 404
         except Exception as e:
             return {"msg": f"A {type(e).__name__} occurred while trying to delete the object."}, 400
-        
+
+@ns.route("/_ForwardObject") 
+@ns.expect(key_param)
+@ns.expect(forwarding_to_node_param)
+class _forward_object(Resource):
+    def put(self):     
+        args = request.args
+        key = args.get("key")
+        forwardingToNode = args.get("forwardingToNode")
+        file = open(os.path.join(FILE_PATH, key))
+        r = requests.put(url_array[forwardingToNode] + "/_PutObject", params={"key": key}, files={"file": file})
+        return r
 
 @ns.route("/_JoinNetwork")
 class _join_network(Resource):

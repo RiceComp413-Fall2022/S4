@@ -1,9 +1,9 @@
-import secrets, os
-import atexit
-import json
-import time
-import requests
 import math
+import time
+import json
+import atexit
+import requests
+import secrets, os
 
 from time import sleep
 from threading import Timer
@@ -17,70 +17,60 @@ from werkzeug.datastructures import FileStorage
 
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app)
+
 api = Api(
     app,
-    version="0.0.1",
+    version = "0.0.1",
     title="S4 Main Node",
     description="Super Simple Storage System Main Node",
 )
 
-ns = api.namespace("S4", description="S4 API Endpoints")
+ns = api.namespace("S4", description = "S4 API Endpoints")
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~ API Model for example header/body and the response ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 RecordPutObject200 = api.model(
-    "RecordPutObject Success",
-    {
+    "RecordPutObject Success", {
         "msg": fields.String(
-            required=True,
-            description="Puts an object into the specified filepath (for now). Currently, the object is "
-            + "placed somewhere on your local filesystem.",
-            example="File successfully saved",
+            required = True,
+            description = "Puts an object into the specified filepath (for now). Currently, the object is "
+            + "placed somewhere on your local filesystem.", example="File successfully saved",
         ),
     },
 )
 
 ListObjects200 = api.model(
-    "ListObjects Success",
-    {
-        "msg": fields.String(
-            description="Success message",
-            example="Files retrieved successfully",
-        ),
+    "ListObjects Success", {
+        "msg": fields.String(description = "Success message", example="Files retrieved successfully"),
         "files": fields.String(
             description="List of object names in storage.",
-            example="{'key1': 'image.jpeg', 'key2': 'file.txt', 'key3': 'test.pdf'}",
+            example="{'key1': 'image.jpeg', 'key2': 'file.txt', 'key3': 'test.pdf'}"
         ),
     },
 )
 
 DeleteObject200 = api.model(
-    "DeleteObject Success",
-    {
+    "DeleteObject Success", {
         "msg": fields.String(
             description="Deletes an object store on the local filesystem.",
-            example="File deleted successfully",
+            example="File deleted successfully"
         ),
     },
 )
 DeleteObject404 = api.model(
-    "DeleteObject Key Not Found",
-    {
-        "msg": fields.String(example="Key does not exist"),
+    "DeleteObject Key Not Found", {
+        "msg": fields.String(example = "Key does not exist"),
     },
 )
 
 FindObject200 = api.model(
-    "FindObject Success",
-    {
-        "found": fields.String(example="true"),
-        "filename": fields.String(example="file.txt"),
+    "FindObject Success", {
+        "found": fields.String(example = "true"),
+        "filename": fields.String(example = "file.txt"),
     },
 )
 
 FindObject404 = api.model(
-    "FindObject Key Not Found",
-    {
+    "FindObject Key Not Found", {
         "found": fields.String(example="false"),
     },
 )
@@ -88,15 +78,16 @@ FindObject404 = api.model(
 TIMEOUT = 0.1
 FILE_PATH = "../tests"
 # FILE_PATH = os.getenv("FILE_PATH")
-ALL_WORKERS = [ "http://127.0.0.1:5001/",
-                "http://127.0.0.1:5002/",
-                "http://127.0.0.1:5003/",
-                "http://127.0.0.1:5004/",]
-healthy_workers = []
 
 key_to_filename = {}  # string to string
 key_to_nodes = {}  # string to list[int]
 node_to_keys = {}  # int to set[string]
+
+healthy_workers = []
+ALL_WORKERS = ["http://127.0.0.1:5001/",
+               "http://127.0.0.1:5002/",
+               "http://127.0.0.1:5003/",
+               "http://127.0.0.1:5004/"]
 
 # Repeated timer 
 class RepeatedTimer(object):
@@ -134,14 +125,17 @@ file_param.add_argument("file", location="files", type=FileStorage)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Actual endpoints ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # ----------------------------------- StartNetwork -----------------------------------
+
+# ??? THERE IS A SLIGHT PROBLEM!!! YOU MUST RESTART LOCALHOST FOR THIS START TO RUN. IF LOCALHOST IS ALREADY OPEN ON UR
+# BROWSER WHEN YOU DO FLASK RUN, NO REQUEST WILL BE MADE AND SO THIS FUNCTION CAN'T CALL BEFORE A REQUEST IF NO 
+# REQUEST IS MADE.
 @app.before_first_request
 def start():
-    rt = RepeatedTimer(60, healthCheck);
+    rt = RepeatedTimer(30, healthCheck);
     
     for worker in ALL_WORKERS:
         try:
-            r = requests.get(url=worker + "_joinNetwork", 
-                             timeout=TIMEOUT)
+            r = requests.get(url = worker + "_joinNetwork", timeout = TIMEOUT)
             if r.status_code == 200: 
                 healthy_workers.append(worker)
         except:
@@ -167,19 +161,11 @@ def start():
 
 
 # ----------------------------------- HealthCheck -----------------------------------
-# @app.before_first_request
-# def healthCheckWrapper():
-#     starttime = time.time()
-#     while True:
-#         print(healthCheck())
-#         time.sleep(60.0 - ((time.time() - starttime) % 60.0)) # currently called once every 60 seconds
-
 def healthCheck():
-    result = ""
-    healthyWorkers = [] 
+    forwardingToNode = -1
+    
     downWorkers = []
-
-    print("HELLO\n\n\n")
+    healthyWorkers = [] 
     
     # Get the healthy and not healthy workers
     for worker in ALL_WORKERS:
@@ -192,14 +178,13 @@ def healthCheck():
                 downWorkers.append(worker)
         except:
             pass
-        
-    # key_to_filename = {}  # string to string
-    # key_to_nodes = {}  # string to list[int]
-    # node_to_keys = {}  # int to set[string]
     
-    forwardingToNode = -1
-    
+    if len(downWorkers) == 0:
+        print("All nodes are healthy!\n")
+            
     for downNode in downWorkers: # for each down node
+        print("Node " + downNode + " is down.\n")
+        
         # get the object that was in this downNode from a node that's up and has a copy of that object
         for key in node_to_keys.get(downWorkers.index(downNode)): # for every file in the down node
             for healthyNode in healthyWorkers: # for every healthy node
@@ -209,7 +194,10 @@ def healthCheck():
                     
                     # ??? the worker node only has _forward_object with a filename parameter. Not one that's key + node
                     healthyNode._forward_object(key, forwardingToNode)
-
+    
+    # ??? Stretch goal: we can check if a node has recovered by keeping a global list of the healthy nodes,
+    # and if it changes on the next health check we can see if new nodes were added to the healthy list
+    
 def findNodeToForwardTo(key, healthyNode, healthyWorkers, downNode):
     nodeHashValue = math.inf
     forwardingToNode = ""
@@ -223,10 +211,10 @@ def findNodeToForwardTo(key, healthyNode, healthyWorkers, downNode):
     
     return fowardingToNode
 
-# ??? Should we use the same md5 hashing like the worker node uses, or is a mod fine becuase this is for that grouping 
-# thing that we will implement later?
+# ??? Should we use the same md5 hashing like the worker node uses, or is a mod fine becuase this is for the grouping 
+# thing we will implement later?
 def nodeHash(indexNodeA, indexNodeB):
-    # ??? can always change the hash whenever we need to
+    # ??? can always change the hash to whatever we want
     return (indexNodeA % 3) - (indexNodeB % 3)
 
 # ----------------------------------- RecordPutObject -----------------------------------

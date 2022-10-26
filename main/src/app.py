@@ -142,9 +142,9 @@ def start():
             pass
     for worker in healthy_workers:
         try:
-            r = requests.put(url=worker + "_setWorkers", 
-                             params={"workers": healthy_workers, "workerIndex": healthy_workers.index(worker)}, 
-                             timeout=TIMEOUT)
+            r = requests.put(url = worker + "_setWorkers", 
+                             params = {"workers": healthy_workers, "workerIndex": healthy_workers.index(worker)}, 
+                             timeout = TIMEOUT)
         except:
             pass
 
@@ -222,7 +222,7 @@ def nodeHash(indexNodeA, indexNodeB):
 @ns.expect(key_param)
 class RecordPutObject(Resource):
     @ns.doc("RecordPutObject")
-    @api.response(200, "Success", model=RecordPutObject200)
+    @api.response(200, "Success", model = RecordPutObject200)
     def post(self):
         # TODO check that request comes from worker
         body = request.json
@@ -238,7 +238,7 @@ class RecordPutObject(Resource):
 @ns.route("/ListObjects")
 class listObjects(Resource):
     @ns.doc("ListObjects")
-    @api.response(200, "Success", model=ListObjects200)
+    @api.response(200, "Success", model = ListObjects200)
     def get(self):
         return {"msg": "Success", "objects": key_to_filename}, 200
 
@@ -248,10 +248,44 @@ class listObjects(Resource):
 @ns.expect(key_param)
 class deleteObject(Resource):
     @ns.doc("DeleteObject")
-    @api.response(200, "Success", model=DeleteObject200)
-    @api.response(404, "Error: Not Found", model=DeleteObject404)
+    @api.response(200, "Success", model = DeleteObject200)
+    @api.response(404, "Error: Not Found", model = DeleteObject404)
     def post(self):
-        return {"msg": "Not implemented"}, 501
+        healthyWorkers = []
+        key = request.json["key"]
+        
+        if key in key_to_filename:
+            return {"msg": "file not found"}, 400
+
+        for worker in ALL_WORKERS:
+            try:
+                r = requests.get(url = worker + "/HealthCheck", timeout = TIMEOUT)
+                
+                if r.status_code == 200: # success
+                    healthyWorkers.append(worker)
+            except:
+                pass
+        
+        # for each node that holds this key
+        for node in key_to_nodes[key]:
+            # if the node is a healthy node
+            if node in healthyWorkers:
+                # try to call the healthy node's _DeleteObject function
+                try:
+                    r = requests.get(url = node + "/_DeleteObject", timeout = TIMEOUT)
+                    
+                    if r.status_code != 200:
+                        return {"msg": "internal server error"}, 500
+                except:
+                    pass
+                
+        key_to_filename.pop(key, None)
+        key_to_nodes.pop(key, None)
+        
+        for node in node_to_keys:
+            node.remove(key)
+                    
+        return {"msg": "Success"}, 200
 
 
 # ----------------------------------- FindObject -----------------------------------
@@ -259,8 +293,8 @@ class deleteObject(Resource):
 @ns.expect(key_param)
 class deleteObject(Resource):
     @ns.doc("FindObject")
-    @api.response(200, "Success", model=FindObject200)
-    @api.response(404, "Error: Not Found", model=FindObject404)
+    @api.response(200, "Success", model = FindObject200)
+    @api.response(404, "Error: Not Found", model = FindObject404)
     def get(self):
         key = request.json["key"]
         if key in key_to_filename:

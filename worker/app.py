@@ -21,7 +21,7 @@ api = Api(
     description="Super Simple Storage System",
 )
 
-ns = api.namespace("S4", description="S4 API Endpoints")
+ns = api.namespace("", description="S4 API Endpoints")
 
 # Fields
 node_number = -1

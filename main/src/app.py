@@ -20,12 +20,12 @@ app.wsgi_app = ProxyFix(app.wsgi_app)
 
 api = Api(
     app,
-    version = "0.0.1",
+    version = "0.0.2",
     title="S4 Main Node",
     description="Super Simple Storage System Main Node",
 )
 
-ns = api.namespace("S4", description = "S4 API Endpoints")
+ns = api.namespace("", description = "S4 API Endpoints")
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~ API Model for example header/body and the response ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 RecordPutObject200 = api.model(
@@ -84,10 +84,11 @@ key_to_nodes = {}  # string to list[int]
 node_to_keys = {}  # int to set[string]
 
 healthy_workers = []
-ALL_WORKERS = ["http://127.0.0.1:5001/",
-               "http://127.0.0.1:5002/",
-               "http://127.0.0.1:5003/",
-               "http://127.0.0.1:5004/"]
+ALL_WORKERS = [
+    "http://127.0.0.1:5001/", 
+    "http://127.0.0.1:5002/", 
+    "http://127.0.0.1:5003/"
+    ]
 
 # Repeated timer 
 class RepeatedTimer(object):
@@ -135,14 +136,14 @@ def start():
     
     for worker in ALL_WORKERS:
         try:
-            r = requests.get(url = worker + "_joinNetwork", timeout = TIMEOUT)
+            r = requests.get(url = worker + "_JoinNetwork", timeout = TIMEOUT)
             if r.status_code == 200: 
                 healthy_workers.append(worker)
         except:
             pass
     for worker in healthy_workers:
         try:
-            r = requests.put(url = worker + "_setWorkers", 
+            r = requests.put(url = worker + "_SetWorkers", 
                              params = {"workers": healthy_workers, "workerIndex": healthy_workers.index(worker)}, 
                              timeout = TIMEOUT)
         except:

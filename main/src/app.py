@@ -135,14 +135,15 @@ def start():
     
     for worker in ALL_WORKERS:
         try:
-            r = requests.get(url = worker + "_joinNetwork", timeout = TIMEOUT)
+            r = requests.get(url = worker + "_JoinNetwork", timeout = TIMEOUT)
             if r.status_code == 200: 
+                print("bob\n\n")
                 healthy_workers.append(worker)
         except:
             pass
     for worker in healthy_workers:
         try:
-            r = requests.put(url = worker + "_setWorkers", 
+            r = requests.put(url = worker + "_SetWorkers", 
                              params = {"workers": healthy_workers, "workerIndex": healthy_workers.index(worker)}, 
                              timeout = TIMEOUT)
         except:

@@ -190,7 +190,7 @@ def healthCheck():
             for healthyNode in healthyWorkers: # for every healthy node
                 if key in node_to_keys.get(healthyWorkers.index(healthyNode)): # if healthy node has the down node file
                     # Find a healthy node that doesn't have the down node file and is closest to the down node by hash
-                    fowardingToNode = findNodeToForwardTo(key, healthyNode, healthyWorkers, downNode)
+                    forwardingToNode = findNodeToForwardTo(key, healthyNode, healthyWorkers, downNode)
                     
                     # ??? the worker node only has _forward_object with a filename parameter. Not one that's key + node
                     healthyNode._forward_object(key, forwardingToNode)
@@ -207,9 +207,9 @@ def findNodeToForwardTo(key, healthyNode, healthyWorkers, downNode):
             tempHash = nodeHash(ALL_WORKERS.index(forwardToNode), ALL_WORKERS.index(downNode))
             if tempHash < nodeHashValue:
                 nodeHashValue = tempHash
-                fowardingToNode = forwardToNode
+                forwardingToNode = forwardToNode
     
-    return fowardingToNode
+    return forwardingToNode
 
 # ??? Should we use the same md5 hashing like the worker node uses, or is a mod fine becuase this is for the grouping 
 # thing we will implement later?

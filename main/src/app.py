@@ -144,7 +144,7 @@ def start():
     for worker in healthy_workers:
         try:
             r = requests.put(url = worker + "_SetWorkers", 
-                             params = {"workers": healthy_workers, "workerIndex": healthy_workers.index(worker)}, 
+                             params = {"workers": json.dumps(healthy_workers), "workerIndex": healthy_workers.index(worker)}, 
                              timeout = TIMEOUT)
         except:
             pass
@@ -297,7 +297,8 @@ class deleteObject(Resource):
     @api.response(200, "Success", model = FindObject200)
     @api.response(404, "Error: Not Found", model = FindObject404)
     def get(self):
-        key = request.json["key"]
+        args = request.args
+        key = args.get("key")
         if key in key_to_filename:
             return {"found": True, "filename": key_to_filename[key]}, 200
         else:

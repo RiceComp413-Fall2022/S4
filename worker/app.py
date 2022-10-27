@@ -148,7 +148,7 @@ filename_param = ns.parser()
 filename_param.add_argument("key", type=str)
 
 workers_param = ns.parser()
-workers_param.add_argument("workers", type=list[str])
+workers_param.add_argument("workers", type=list)
 
 worker_idx_param = ns.parser()
 worker_idx_param.add_argument("workerIndex", type=int)
@@ -209,7 +209,7 @@ class get_object(Resource):
         if r.status_code == 200:
             return r
         
-        curr_replica += 1
+        curr_replica = (curr_replica + 1)%len(url_array)
 
         while curr_replica != start_replica:
             r = requests.get(url_array[curr_replica] + "/_GetObject", params={"key":key, "filename": filename})
@@ -249,19 +249,17 @@ class put_object(Resource):
             return {"msg": "Empty filename"}, 400
 
         # check if key is unique
-        r = requests.get(url=main_url + "/FindObject")
+        r = requests.get(url=main_url + "/FindObject", params={"key": key})
 
         if r.status_code == 200:
             return {"msg": "Key not unique"}, 400
-        elif r.status_code == 400 or r.status_code == 404:
-            return r
-
-        response = r.json()
-        if not response["found"] == False:
-            return {"msg": "Internal Server Error"}, 500
-
-        curr_replica = hash(key)
+        elif r.status_code == 404:
+            response = r.json()
+            if not response["found"] == False:
+                return {"msg": "Internal Server Error"}, 500
         
+        curr_replica = hash(key)
+
         replicas = 3
         start_replica = curr_replica
         replica_nodes = []
@@ -271,15 +269,17 @@ class put_object(Resource):
             if success:
                 replicas -= 1
                 replica_nodes.append(curr_replica)
-                curr_replica += 1
+                curr_replica = (curr_replica + 1)%len(url_array)
+                if curr_replica == start_replica:
+                    replicas = 0
         
         while replicas != 0:
-            r = requests.put(url_array[curr_replica] + "/_PutObject", params={"key": key}, files={"file": file})
+            r = requests.put(url_array[curr_replica] + "_PutObject", params={"key": key}, files={"file": file})
             if r.status_code == 201:
                 replicas -= 1
                 replica_nodes.append(curr_replica)
 
-            curr_replica += 1
+            curr_replica = (curr_replica + 1)%len(url_array)
 
             if curr_replica == start_replica:
                 #already performed linear traversal once
@@ -433,9 +433,10 @@ class _set_workers(Resource):
     #TODO add api response model
     def put(self):
         args = request.args
-        url_array = args.get("workers")
-        main_url = request.path
-        node_number = args.get("workerIndex")
+        global url_array
+        global node_number
+        url_array = json.loads(args.get("workers"))
+        node_number = int(args.get("workerIndex"))
         return 200
 
 
@@ -451,6 +452,7 @@ def retrieve_object(key, filename):
         return False
 
 def save_object(file, key): #TODO decide if this should be filename or key
+    print("Saving file: ", key)
     try:
         file.save(os.path.join(FILE_PATH, key))
         return True

@@ -1,4 +1,5 @@
 import math
+from platform import node
 import time
 import json
 import atexit
@@ -146,6 +147,7 @@ def start():
             r = requests.put(url = worker + "_SetWorkers", 
                              params = {"workers": json.dumps(healthy_workers), "workerIndex": healthy_workers.index(worker)}, 
                              timeout = TIMEOUT)
+            node_to_keys[healthy_workers.index(worker)] = set()
         except:
             pass
 
@@ -226,12 +228,18 @@ class RecordPutObject(Resource):
     @api.response(200, "Success", model = RecordPutObject200)
     def post(self):
         # TODO check that request comes from worker
-        body = request.json
-        key, filename, nodes = body["key"], body["filename"], body["nodes"]
-        self.key_to_filename[key] = filename
-        self.filename_to_nodes[filename] = nodes
+        body = request.form
+        key, filename, nodes = body["key"], body["filename"], json.loads(body["nodes"])
+
+        global key_to_filename
+        global filename_to_nodes
+        global node_to_keys
+
+        key_to_filename[key] = filename
+        print(key_to_filename)
+        # filename_to_nodes[filename] = nodes
         for node in nodes:
-            self.node_to_keys[node].add(key)
+            node_to_keys[node].add(key)
         return {"msg": "Success"}, 200
 
 
@@ -292,7 +300,7 @@ class deleteObject(Resource):
 # ----------------------------------- FindObject -----------------------------------
 @ns.route("/FindObject")
 @ns.expect(key_param)
-class deleteObject(Resource):
+class findObject(Resource):
     @ns.doc("FindObject")
     @api.response(200, "Success", model = FindObject200)
     @api.response(404, "Error: Not Found", model = FindObject404)

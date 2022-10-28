@@ -186,11 +186,11 @@ class get_object(Resource):
             return {"msg": "Key not specified"}, 400
 
         #check if key exists
-        r = requests.get(url=main_url + "/FindObject")
+        r = requests.get(url=main_url + "/FindObject", params={"key":key})
 
-        if r.status_code == 500: #TODO change this status code
-            return {"msg": "Key does not exist"}, 400
-        elif r.status_code == 400 or r.status_code == 404:
+        if r.status_code == 404:
+            return {"msg": "Key does not exist"}, 404
+        elif r.status_code == 400:
             return r
 
         response = r.json()
@@ -287,7 +287,7 @@ class put_object(Resource):
         
         # TODO: do we need key and filename? why data vs. params?
         # Record data in main node
-        r = requests.post(main_url + "/RecordPutObject", data={"key": key, "filename": filename, "nodes": replica_nodes}, headers={'content-type':'text/plain'},)
+        r = requests.post(main_url + "/RecordPutObject", data={"key": key, "filename": filename, "nodes": json.dumps(replica_nodes)})
         
         return {"msg": "File successfully saved"}, 201
 

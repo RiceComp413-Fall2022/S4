@@ -287,11 +287,12 @@ class put_object(Resource):
                 if curr_replica == start_replica:
                     replicas = 0
 
+        f = file.read()
         while replicas != 0:
             r = requests.put(
                 url_array[curr_replica] + "_PutObject",
                 params={"key": key},
-                files={"file": file},
+                files={"file": f},
             )
             if r.status_code == 201:
                 replicas -= 1

@@ -4,6 +4,7 @@ import json
 import hashlib
 from tracemalloc import start
 import requests
+from io import BytesIO
 
 from flask import Flask, request, flash, send_file
 from flask_restx import Api, Resource, fields
@@ -154,7 +155,7 @@ worker_idx_param = ns.parser()
 worker_idx_param.add_argument("workerIndex", type=int)
 
 forwarding_to_node_param = ns.parser()
-forwarding_to_node_param .add_argument("forwardingToNode", type=int)
+forwarding_to_node_param.add_argument("forwardingToNode", type=int)
 
 file_param = ns.parser()
 file_param.add_argument("file", location="files", type=FileStorage)
@@ -168,6 +169,7 @@ class statud_update(Resource):
     def get(self):
         return {"msg": f"Node {node_number} is alive."}, 200
 
+
 # ----------------------------------- GetObject -----------------------------------
 @ns.route("/GetObject")
 @ns.expect(key_param)
@@ -177,7 +179,7 @@ class get_object(Resource):
     @api.response(400, "Error: Bad Request", model=GetObject400)
     @api.response(404, "Error: Not Found", model=GetObject404)
     def get(self):
-        
+
         # get the key from the request parameters
         args = request.args
         key = args.get("key")
@@ -185,39 +187,51 @@ class get_object(Resource):
         if not key:
             return {"msg": "Key not specified"}, 400
 
-        #check if key exists
-        r = requests.get(url=main_url + "/FindObject", params={"key":key})
+        # check if key exists
+        r = requests.get(url=main_url + "/FindObject", params={"key": key})
 
         if r.status_code == 404:
             return {"msg": "Key does not exist"}, 404
         elif r.status_code == 400:
             return r
 
+        print("trying to get json")
         response = r.json()
         filename = response["filename"]
+        print("got json")
 
         curr_replica = hash(key)
         start_replica = curr_replica
         if curr_replica == node_number:
-            #this node is the primary replica
+            # this node is the primary replica
             res = retrieve_object(key, filename)
             if res:
+                print("returning res")
                 return res
 
-        #try the first node
-        r = requests.get(url_array[curr_replica] + "/_GetObject", params={"key":key, "filename": filename})
+        # try the first node
+        r = requests.get(
+            url_array[curr_replica] + "/_GetObject",
+            params={"key": key, "filename": filename},
+            stream=True,
+        )
         if r.status_code == 200:
-            return r
-        
-        curr_replica = (curr_replica + 1)%len(url_array)
+            return send_file(
+                BytesIO(r.content), download_name=filename, as_attachment=True
+            )
+
+        curr_replica = (curr_replica + 1) % len(url_array)
 
         while curr_replica != start_replica:
-            r = requests.get(url_array[curr_replica] + "/_GetObject", params={"key":key, "filename": filename})
+            r = requests.get(
+                url_array[curr_replica] + "/_GetObject",
+                params={"key": key, "filename": filename},
+            )
             if r.status_code == 200:
-                return r
+                return r.content, 200
             curr_replica = (curr_replica + 1) % len(url_array)
 
-        return {"msg":"Invalid file specified"}, 404
+        return {"msg": "Invalid file specified"}, 404
 
 
 # ----------------------------------- PutObject -----------------------------------
@@ -257,7 +271,7 @@ class put_object(Resource):
             response = r.json()
             if not response["found"] == False:
                 return {"msg": "Internal Server Error"}, 500
-        
+
         curr_replica = hash(key)
 
         replicas = 3
@@ -269,26 +283,33 @@ class put_object(Resource):
             if success:
                 replicas -= 1
                 replica_nodes.append(url_array[curr_replica])
-                curr_replica = (curr_replica + 1)%len(url_array)
+                curr_replica = (curr_replica + 1) % len(url_array)
                 if curr_replica == start_replica:
                     replicas = 0
-        
+
         while replicas != 0:
-            r = requests.put(url_array[curr_replica] + "_PutObject", params={"key": key}, files={"file": file})
+            r = requests.put(
+                url_array[curr_replica] + "_PutObject",
+                params={"key": key},
+                files={"file": file},
+            )
             if r.status_code == 201:
                 replicas -= 1
                 replica_nodes.append(url_array[curr_replica])
 
-            curr_replica = (curr_replica + 1)%len(url_array)
+            curr_replica = (curr_replica + 1) % len(url_array)
 
             if curr_replica == start_replica:
-                #already performed linear traversal once
-                break;
-        
+                # already performed linear traversal once
+                break
+
         # TODO: do we need key and filename? why data vs. params?
         # Record data in main node
-        r = requests.post(main_url + "/RecordPutObject", data={"key": key, "filename": filename, "nodes": json.dumps(replica_nodes)})
-        
+        r = requests.post(
+            main_url + "/RecordPutObject",
+            data={"key": key, "filename": filename, "nodes": json.dumps(replica_nodes)},
+        )
+
         return {"msg": "File successfully saved"}, 201
 
 
@@ -303,7 +324,10 @@ class list_objects(Resource):
         if r.status_code == 200:
             response = r.json()
             keys_to_filenames = json.loads(response["objects"])
-            return {"msg": "Files retrieved successfully.", "keysToFilenames": keys_to_filenames}, 200
+            return {
+                "msg": "Files retrieved successfully.",
+                "keysToFilenames": keys_to_filenames,
+            }, 200
         elif r.status_code == 500:
             return {"msg": "The main node could not return the object mapping."}, 404
         else:
@@ -324,7 +348,7 @@ class delete_object(Resource):
         key = args.get("key")
         if not key:
             return {"msg": "Key not specified"}, 400
-        
+
         r = requests.post(main_url + "/DeleteObject", params={"key": key})
 
         if r.status_code == 200:
@@ -336,7 +360,8 @@ class delete_object(Resource):
 
 # ----------------------------------- Internal Endpoints -----------------------------------
 
-@ns.route("/_GetObject") 
+
+@ns.route("/_GetObject")
 @ns.expect(key_param)
 @ns.expect(filename_param)
 class _get_object(Resource):
@@ -345,7 +370,7 @@ class _get_object(Resource):
     @api.response(400, "Error: Bad Request", model=GetObject400)
     @api.response(404, "Error: Not Found", model=GetObject404)
     def get(self):
-        
+
         # get the key from the request parameters
         args = request.args
         key = args.get("key")
@@ -356,10 +381,10 @@ class _get_object(Resource):
         if res:
             return res
         else:
-            return {"msg":"Invalid file specified"}, 404
+            return {"msg": "Invalid file specified"}, 404
 
 
-@ns.route("/_PutObject") 
+@ns.route("/_PutObject")
 @ns.expect(key_param)
 class _put_object(Resource):
     @ns.doc("_PutObject")
@@ -373,15 +398,16 @@ class _put_object(Resource):
         file = request.files.get("file")
         success = save_object(file, key)
         if not success:
-            return {"msg":"Internal Server Error"}, 500
-        
+            return {"msg": "Internal Server Error"}, 500
+
         return {"msg": "Object successfully saved"}, 201
 
-@ns.route("/_DeleteObject") 
+
+@ns.route("/_DeleteObject")
 @ns.expect(key_param)
 class _delete_object(Resource):
     @ns.doc("_DeleteObject")
-    #TODO add api response model
+    # TODO add api response model
     def put(self):
         args = request.args
         key = args.get("key")
@@ -394,33 +420,42 @@ class _delete_object(Resource):
         except FileNotFoundError:
             return {"msg": f"Object with key {key} not found."}, 404
         except Exception as e:
-            return {"msg": f"A {type(e).__name__} occurred while trying to delete the object."}, 400
+            return {
+                "msg": f"A {type(e).__name__} occurred while trying to delete the object."
+            }, 400
 
-@ns.route("/_ForwardObject") 
+
+@ns.route("/_ForwardObject")
 @ns.expect(key_param)
 @ns.expect(forwarding_to_node_param)
 class _forward_object(Resource):
-    def put(self):     
+    def put(self):
         args = request.args
         key = args.get("key")
         forwardingToNode = args.get("forwardingToNode")
         file = open(os.path.join(FILE_PATH, key))
-        r = requests.put(url_array[forwardingToNode] + "/_PutObject", params={"key": key}, files={"file": file})
+        r = requests.put(
+            url_array[forwardingToNode] + "/_PutObject",
+            params={"key": key},
+            files={"file": file},
+        )
         return r
+
 
 @ns.route("/_JoinNetwork")
 class _join_network(Resource):
     @ns.doc("_JoinNetwork")
-    #TODO add api response model
-    def get(self): #TODO is this get
+    # TODO add api response model
+    def get(self):  # TODO is this get
         return 200
 
-@ns.route("/_SetWorkers") 
+
+@ns.route("/_SetWorkers")
 @ns.expect(workers_param)
 @ns.expect(worker_idx_param)
 class _set_workers(Resource):
     @ns.doc("_SetWorkers")
-    #TODO add api response model
+    # TODO add api response model
     def put(self):
         args = request.args
         global url_array
@@ -432,16 +467,16 @@ class _set_workers(Resource):
 
 # -----------------------------------Helper Functions -----------------------------------
 
+
 def retrieve_object(key, filename):
     # try to get the file
     try:
-        return send_file(
-            os.path.join(FILE_PATH, key), download_name=filename
-        )
+        return send_file(os.path.join(FILE_PATH, key), download_name=filename)
     except:
         return False
 
-def save_object(file, key): #TODO decide if this should be filename or key
+
+def save_object(file, key):  # TODO decide if this should be filename or key
     print("Saving file: ", key)
     try:
         file.save(os.path.join(FILE_PATH, key))
@@ -449,11 +484,11 @@ def save_object(file, key): #TODO decide if this should be filename or key
     except:
         return False
 
+
 def hash(key):
     bits = hashlib.md5(key.encode())
-    node_idx = int(bits.hexdigest(),base=16) % len(url_array)
+    node_idx = int(bits.hexdigest(), base=16) % len(url_array)
     return node_idx
-
 
 
 # Main

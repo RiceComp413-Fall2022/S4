@@ -164,7 +164,7 @@ file_param.add_argument("file", location="files", type=FileStorage)
 
 # ----------------------------------- HealthCheck -----------------------------------
 @ns.route("/HealthCheck")
-class statud_update(Resource):
+class status_update(Resource):
     @ns.doc("HealthCheck")
     def get(self):
         return {"msg": f"Node {node_number} is alive."}, 200

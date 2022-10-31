@@ -156,8 +156,8 @@ worker_idx_param.add_argument("workerIndex", type=int)
 forwarding_to_node_param = ns.parser()
 forwarding_to_node_param .add_argument("forwardingToNode", type=int)
 
-# file_param = ns.parser()
-# file_param.add_argument("file", location="files", type=FileStorage)
+file_param = ns.parser()
+file_param.add_argument("file", location="files", type=FileStorage)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Actual endpoints ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -222,7 +222,7 @@ class get_object(Resource):
 
 # ----------------------------------- PutObject -----------------------------------
 @ns.route("/PutObject")
-@ns.expect(key_param)
+@ns.expect(file_param, key_param)
 class put_object(Resource):
     @ns.doc("PutObject")
     @api.response(201, "Object successfully saved", model=PutObject201)
@@ -298,23 +298,12 @@ class list_objects(Resource):
     @ns.doc("ListObjects")
     @api.response(200, "Success", model=ListObjects200)
     def get(self):
-        #TODO: how to get list of keys?
         # Get key to file name mapping from main node
         r = requests.get(url=main_url + "/ListObjects")
         if r.status_code == 200:
             response = r.json()
-            keys = os.listdir(FILE_PATH)
-            keys_to_filenames = response["objects"]
-            file_names = []
-
-            # Get file names corresponding to keys on current node
-            for key in keys:
-                if key in keys_to_filenames:
-                    file_names.append(keys_to_filenames[keys])
-                else:
-                    # TODO: throw error if key not in main node?
-                    return
-            return {"msg": "Files retrieved successfully.", "files": file_names}, 200
+            keys_to_filenames = json.loads(response["objects"])
+            return {"msg": "Files retrieved successfully.", "keysToFilenames": keys_to_filenames}, 200
         elif r.status_code == 500:
             return {"msg": "The main node could not return the object mapping."}, 404
         else:

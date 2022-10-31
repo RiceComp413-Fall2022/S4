@@ -249,7 +249,7 @@ class listObjects(Resource):
     @ns.doc("ListObjects")
     @api.response(200, "Success", model = ListObjects200)
     def get(self):
-        return {"msg": "Success", "objects": key_to_filename}, 200
+        return {"msg": "Success", "objects": json.dumps(key_to_filename)}, 200
 
 
 # ----------------------------------- DeleteObject -----------------------------------

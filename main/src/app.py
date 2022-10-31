@@ -146,7 +146,7 @@ def start():
     for idx, worker in enumerate(healthy_workers):
         try:
             r = requests.put(url = worker + "_SetWorkers", 
-                             params = {"workers": json.dumps(healthy_workers), "workerIndex": idx}, 
+                             params = {"workers": json.dumps(ALL_WORKERS), "workerIndex": idx}, 
                              timeout = TIMEOUT)
         except:
             pass
@@ -165,19 +165,16 @@ def start():
 
 # ----------------------------------- HealthCheck -----------------------------------
 def healthCheck():
-    forwardingToNode = -1
-    
     downWorkers = []
     healthyWorkers = [] 
-    
+
     # Get the healthy and not healthy workers
     for worker in ALL_WORKERS:
         try:
             r = requests.get(url = worker + "/HealthCheck", timeout = TIMEOUT)
-            
-            if r.status_code == 200: # success
+            if r.status_code == 200:
                 healthyWorkers.append(worker)
-            elif r.status_code == 503: # server is down/overloaded
+            else: # server is down/overloaded
                 downWorkers.append(worker)
         except:
             pass
@@ -185,40 +182,37 @@ def healthCheck():
     if len(downWorkers) == 0:
         print("All nodes are healthy!\n")
             
-    for downNode in downWorkers: # for each down node
+    # for each down node
+    for downNode in downWorkers:
         print("Node " + downNode + " is down.\n")
         
         # get the object that was in this downNode from a node that's up and has a copy of that object
         for key in node_to_keys.get(downNode): # for every file in the down node
-            for healthyNode in healthyWorkers: # for every healthy node
-                if key in node_to_keys.get(healthyNode): # if healthy node has the down node file
-                    # Find a healthy node that doesn't have the down node file and is closest to the down node by hash
-                    forwardingToNode = findNodeToForwardTo(key, healthyNode, healthyWorkers, downNode)
-                    
-                    # ??? the worker node only has _forward_object with a filename parameter. Not one that's key + node
-                    healthyNode._forward_object(key, forwardingToNode)
-    
-    # ??? Stretch goal: we can check if a node has recovered by keeping a global list of the healthy nodes,
-    # and if it changes on the next health check we can see if new nodes were added to the healthy list
-    
-def findNodeToForwardTo(key, healthyNode, healthyWorkers, downNode):
-    nodeHashValue = math.inf
-    forwardingToNode = ""
-    
-    for forwardToNode in healthyWorkers:
-        if key not in node_to_keys.get(forwardToNode) and forwardToNode != healthyNode:
-            tempHash = nodeHash(ALL_WORKERS.index(forwardToNode), ALL_WORKERS.index(downNode))
-            if tempHash < nodeHashValue:
-                nodeHashValue = tempHash
-                forwardingToNode = forwardToNode
-    
-    return forwardingToNode
+            start_node_idx = ALL_WORKERS.index(downNode) # start at the down node
 
-# ??? Should we use the same md5 hashing like the worker node uses, or is a mod fine becuase this is for the grouping 
-# thing we will implement later?
-def nodeHash(indexNodeA, indexNodeB):
-    # ??? can always change the hash to whatever we want
-    return (indexNodeA % 3) - (indexNodeB % 3)
+            contains_url = ""
+            # iterate through all nodes (including looping) to get a node with the file of that down node, 
+            # but don't loop back to the down node
+            for i in range(start_node_idx + 1, start_node_idx + len(ALL_WORKERS)):
+                node_idx = i % len(ALL_WORKERS)
+                node_url = ALL_WORKERS[node_idx]
+                if key in node_to_keys.get(node_url) and node_url in healthyWorkers:
+                    contains_url = node_url
+
+            if contains_url == "":
+                print("ALL NODES ARE DOWN!!! \n")
+                return
+            
+            # forward to all nodes, break on the first successful request
+            for i in range(start_node_idx + 1, start_node_idx + len(ALL_WORKERS)):
+                node_idx = i % len(ALL_WORKERS)
+                node_url = ALL_WORKERS[node_idx]
+                if key not in node_to_keys.get(node_url):
+                    r = requests.put(contains_url + "/_ForwardObject", params={"key": key, "forwardingToNode": node_url})
+
+                    if r.status_code == 201:
+                        break
+                
 
 # ----------------------------------- RecordPutObject -----------------------------------
 @ns.route("/RecordPutObject")

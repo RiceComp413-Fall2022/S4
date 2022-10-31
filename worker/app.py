@@ -155,7 +155,7 @@ worker_idx_param = ns.parser()
 worker_idx_param.add_argument("workerIndex", type=int)
 
 forwarding_to_node_param = ns.parser()
-forwarding_to_node_param .add_argument("forwardingToNode", type=str)
+forwarding_to_node_param.add_argument("forwardingToNode", type=str)
 
 file_param = ns.parser()
 file_param.add_argument("file", location="files", type=FileStorage)
@@ -434,15 +434,11 @@ class _forward_object(Resource):
         key = args.get("key")
         forwardingToNode = args.get("forwardingToNode")
         file = open(os.path.join(FILE_PATH, key))
-<<<<<<< HEAD
         r = requests.put(
             url_array[forwardingToNode] + "/_PutObject",
             params={"key": key},
             files={"file": file},
         )
-=======
-        r = requests.put(forwardToNode + "/_PutObject", params={"key": key}, files={"file": file})
->>>>>>> 805b0dc2db023ce8aea1bb61534ac980010a4a6c
         return r
 
 

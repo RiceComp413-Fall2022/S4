@@ -268,7 +268,7 @@ class put_object(Resource):
             success = save_object(file, key)
             if success:
                 replicas -= 1
-                replica_nodes.append(curr_replica)
+                replica_nodes.append(url_array[curr_replica])
                 curr_replica = (curr_replica + 1)%len(url_array)
                 if curr_replica == start_replica:
                     replicas = 0
@@ -277,7 +277,7 @@ class put_object(Resource):
             r = requests.put(url_array[curr_replica] + "_PutObject", params={"key": key}, files={"file": file})
             if r.status_code == 201:
                 replicas -= 1
-                replica_nodes.append(curr_replica)
+                replica_nodes.append(url_array[curr_replica])
 
             curr_replica = (curr_replica + 1)%len(url_array)
 
@@ -331,7 +331,7 @@ class delete_object(Resource):
             return {"msg": "The object was deleted successfully."}, 200
         else:
             # TODO: better way to do this?
-            return {"msg": r.json()["msg"]}, r.status_code
+            return {"msg": r.json()}, r.status_code
 
 
 # ----------------------------------- Internal Endpoints -----------------------------------
@@ -388,6 +388,7 @@ class _delete_object(Resource):
 
         try:
             # remove file from filesystem
+            print(os.path.join(FILE_PATH, key))
             os.remove(os.path.join(FILE_PATH, key))
             return {"msg": "Object successfully deleted."}, 200
         except FileNotFoundError:

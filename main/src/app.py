@@ -5,6 +5,7 @@ import json
 import atexit
 import requests
 import secrets, os
+from collections import defaultdict
 
 from time import sleep
 from threading import Timer
@@ -81,8 +82,8 @@ FILE_PATH = "../tests"
 # FILE_PATH = os.getenv("FILE_PATH")
 
 key_to_filename = {}  # string to string
-key_to_nodes = {}  # string to list[int]
-node_to_keys = {}  # int to set[string]
+key_to_nodes = {}  # string to list[string]
+node_to_keys = defaultdict(set)  # string to set[string]
 
 healthy_workers = []
 ALL_WORKERS = [
@@ -142,12 +143,11 @@ def start():
                 healthy_workers.append(worker)
         except:
             pass
-    for worker in healthy_workers:
+    for idx, worker in enumerate(healthy_workers):
         try:
             r = requests.put(url = worker + "_SetWorkers", 
-                             params = {"workers": json.dumps(healthy_workers), "workerIndex": healthy_workers.index(worker)}, 
+                             params = {"workers": json.dumps(healthy_workers), "workerIndex": idx}, 
                              timeout = TIMEOUT)
-            node_to_keys[healthy_workers.index(worker)] = set()
         except:
             pass
 
@@ -189,9 +189,9 @@ def healthCheck():
         print("Node " + downNode + " is down.\n")
         
         # get the object that was in this downNode from a node that's up and has a copy of that object
-        for key in node_to_keys.get(downWorkers.index(downNode)): # for every file in the down node
+        for key in node_to_keys.get(downNode): # for every file in the down node
             for healthyNode in healthyWorkers: # for every healthy node
-                if key in node_to_keys.get(healthyWorkers.index(healthyNode)): # if healthy node has the down node file
+                if key in node_to_keys.get(healthyNode): # if healthy node has the down node file
                     # Find a healthy node that doesn't have the down node file and is closest to the down node by hash
                     forwardingToNode = findNodeToForwardTo(key, healthyNode, healthyWorkers, downNode)
                     
@@ -206,7 +206,7 @@ def findNodeToForwardTo(key, healthyNode, healthyWorkers, downNode):
     forwardingToNode = ""
     
     for forwardToNode in healthyWorkers:
-        if key not in node_to_keys.get(healthyWorkers.index(forwardToNode)) and forwardToNode != healthyNode:
+        if key not in node_to_keys.get(forwardToNode) and forwardToNode != healthyNode:
             tempHash = nodeHash(ALL_WORKERS.index(forwardToNode), ALL_WORKERS.index(downNode))
             if tempHash < nodeHashValue:
                 nodeHashValue = tempHash
@@ -231,13 +231,9 @@ class RecordPutObject(Resource):
         body = request.form
         key, filename, nodes = body["key"], body["filename"], json.loads(body["nodes"])
 
-        global key_to_filename
-        global filename_to_nodes
-        global node_to_keys
-
         key_to_filename[key] = filename
-        print(key_to_filename)
-        # filename_to_nodes[filename] = nodes
+        key_to_nodes[key] = nodes
+        print(node_to_keys, nodes)
         for node in nodes:
             node_to_keys[node].add(key)
         return {"msg": "Success"}, 200
@@ -261,9 +257,9 @@ class deleteObject(Resource):
     @api.response(404, "Error: Not Found", model = DeleteObject404)
     def post(self):
         healthyWorkers = []
-        key = request.json["key"]
-        
-        if key in key_to_filename:
+        args = request.args
+        key = args.get("key")
+        if key not in key_to_filename:
             return {"msg": "file not found"}, 400
 
         for worker in ALL_WORKERS:
@@ -275,13 +271,15 @@ class deleteObject(Resource):
             except:
                 pass
         
+        print(healthyWorkers, key_to_nodes, key_to_nodes[key])
         # for each node that holds this key
         for node in key_to_nodes[key]:
             # if the node is a healthy node
             if node in healthyWorkers:
+                
                 # try to call the healthy node's _DeleteObject function
                 try:
-                    r = requests.get(url = node + "/_DeleteObject", timeout = TIMEOUT)
+                    r = requests.put(url = node + "/_DeleteObject", params={"key": key}, timeout = TIMEOUT)
                     
                     if r.status_code != 200:
                         return {"msg": "internal server error"}, 500
@@ -292,7 +290,7 @@ class deleteObject(Resource):
         key_to_nodes.pop(key, None)
         
         for node in node_to_keys:
-            node.remove(key)
+            node_to_keys[node].remove(key)
                     
         return {"msg": "Success"}, 200
 

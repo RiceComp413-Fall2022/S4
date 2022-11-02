@@ -191,7 +191,7 @@ def healthCheck():
             else:  # server is down/overloaded
                 downWorkers.append(worker)
         except:
-            pass
+            downWorkers.append(worker)
 
     if len(downWorkers) == 0:
         print("All nodes are healthy!\n")

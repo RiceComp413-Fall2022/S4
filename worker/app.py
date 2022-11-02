@@ -210,25 +210,30 @@ class get_object(Resource):
                 return res
 
         # try the first node
-        r = requests.get(
-            url_array[curr_replica] + "/_GetObject",
-            params={"key": key, "filename": filename},
-            stream=True,
-        )
-        if r.status_code == 200:
-            return send_file(
-                BytesIO(r.content), download_name=filename, as_attachment=True
-            )
-
-        curr_replica = (curr_replica + 1) % len(url_array)
-
-        while curr_replica != start_replica:
+        try:
             r = requests.get(
                 url_array[curr_replica] + "/_GetObject",
                 params={"key": key, "filename": filename},
+                stream=True,
             )
             if r.status_code == 200:
-                return r.content, 200
+                return send_file(
+                    BytesIO(r.content), download_name=filename, as_attachment=True
+                )
+        except:
+            pass
+        curr_replica = (curr_replica + 1) % len(url_array)
+
+        while curr_replica != start_replica:
+            try:
+                r = requests.get(
+                    url_array[curr_replica] + "/_GetObject",
+                    params={"key": key, "filename": filename},
+                )
+                if r.status_code == 200:
+                    return r.content, 200
+            except:
+                pass
             curr_replica = (curr_replica + 1) % len(url_array)
 
         return {"msg": "Invalid file specified"}, 404
@@ -289,11 +294,14 @@ class put_object(Resource):
 
         f = file.read()
         while replicas != 0:
-            r = requests.put(
-                url_array[curr_replica] + "_PutObject",
-                params={"key": key},
-                files={"file": f},
-            )
+            try:
+                r = requests.put(
+                    url_array[curr_replica] + "_PutObject",
+                    params={"key": key},
+                    files={"file": f},
+                )
+            except:
+                pass
             if r.status_code == 201:
                 replicas -= 1
                 replica_nodes.append(url_array[curr_replica])
@@ -435,11 +443,14 @@ class _forward_object(Resource):
         key = args.get("key")
         forwardingToNode = args.get("forwardingToNode")
         file = open(os.path.join(FILE_PATH, key))
-        r = requests.put(
-            url_array[forwardingToNode] + "/_PutObject",
-            params={"key": key},
-            files={"file": file},
-        )
+        try:
+            r = requests.put(
+                url_array[forwardingToNode] + "/_PutObject",
+                params={"key": key},
+                files={"file": file},
+            )
+        except:
+            pass
         return r
 
 

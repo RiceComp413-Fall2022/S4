@@ -210,25 +210,30 @@ class get_object(Resource):
                 return res
 
         # try the first node
-        r = requests.get(
-            url_array[curr_replica] + "/_GetObject",
-            params={"key": key, "filename": filename},
-            stream=True,
-        )
-        if r.status_code == 200:
-            return send_file(
-                BytesIO(r.content), download_name=filename, as_attachment=True
-            )
-
-        curr_replica = (curr_replica + 1) % len(url_array)
-
-        while curr_replica != start_replica:
+        try:
             r = requests.get(
                 url_array[curr_replica] + "/_GetObject",
                 params={"key": key, "filename": filename},
+                stream=True,
             )
             if r.status_code == 200:
-                return r.content, 200
+                return send_file(
+                    BytesIO(r.content), download_name=filename, as_attachment=True
+                )
+        except:
+            pass
+        curr_replica = (curr_replica + 1) % len(url_array)
+
+        while curr_replica != start_replica:
+            try:
+                r = requests.get(
+                    url_array[curr_replica] + "/_GetObject",
+                    params={"key": key, "filename": filename},
+                )
+                if r.status_code == 200:
+                    return r.content, 200
+            except:
+                pass
             curr_replica = (curr_replica + 1) % len(url_array)
 
         return {"msg": "Invalid file specified"}, 404

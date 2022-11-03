@@ -23,57 +23,66 @@ app.wsgi_app = ProxyFix(app.wsgi_app)
 
 api = Api(
     app,
-    version = "0.0.2",
+    version="0.0.2",
     title="S4 Main Node",
     description="Super Simple Storage System Main Node",
 )
 
-ns = api.namespace("", description = "S4 API Endpoints")
+ns = api.namespace("", description="S4 API Endpoints")
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~ API Model for example header/body and the response ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 RecordPutObject200 = api.model(
-    "RecordPutObject Success", {
+    "RecordPutObject Success",
+    {
         "msg": fields.String(
-            required = True,
-            description = "Puts an object into the specified filepath (for now). Currently, the object is "
-            + "placed somewhere on your local filesystem.", example="File successfully saved",
+            required=True,
+            description="Puts an object into the specified filepath (for now). Currently, the object is "
+            + "placed somewhere on your local filesystem.",
+            example="File successfully saved",
         ),
     },
 )
 
 ListObjects200 = api.model(
-    "ListObjects Success", {
-        "msg": fields.String(description = "Success message", example="Files retrieved successfully"),
+    "ListObjects Success",
+    {
+        "msg": fields.String(
+            description="Success message", example="Files retrieved successfully"
+        ),
         "files": fields.String(
             description="List of object names in storage.",
-            example="{'key1': 'image.jpeg', 'key2': 'file.txt', 'key3': 'test.pdf'}"
+            example="{'key1': 'image.jpeg', 'key2': 'file.txt', 'key3': 'test.pdf'}",
         ),
     },
 )
 
 DeleteObject200 = api.model(
-    "DeleteObject Success", {
+    "DeleteObject Success",
+    {
         "msg": fields.String(
             description="Deletes an object store on the local filesystem.",
-            example="File deleted successfully"
+            example="File deleted successfully",
         ),
     },
 )
 DeleteObject404 = api.model(
-    "DeleteObject Key Not Found", {
-        "msg": fields.String(example = "Key does not exist"),
+    "DeleteObject Key Not Found",
+    {
+        "msg": fields.String(example="Key does not exist"),
     },
 )
 
 FindObject200 = api.model(
-    "FindObject Success", {
-        "found": fields.String(example = "true"),
-        "filename": fields.String(example = "file.txt"),
+    "FindObject Success",
+    {
+        "found": fields.String(example="true"),
+        "filename": fields.String(example="file.txt"),
     },
 )
 
 FindObject404 = api.model(
-    "FindObject Key Not Found", {
+    "FindObject Key Not Found",
+    {
         "found": fields.String(example="false"),
     },
 )
@@ -94,7 +103,7 @@ ALL_WORKERS = [
     "http://127.0.0.1:5004/",
     ]
 
-# Repeated timer 
+# Repeated timer
 class RepeatedTimer(object):
     def __init__(self, interval, function, *args, **kwargs):
         self._timer = None
@@ -120,6 +129,7 @@ class RepeatedTimer(object):
         self._timer.cancel()
         self.is_running = False
 
+
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Endpoint parameters ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 key_param = ns.parser()
 key_param.add_argument("Key", type=str)
@@ -139,17 +149,19 @@ def start():
     
     for worker in ALL_WORKERS:
         try:
-            r = requests.get(url = worker + "_JoinNetwork", timeout = TIMEOUT)
-            if r.status_code == 200: 
+            r = requests.get(url=worker + "_JoinNetwork", timeout=TIMEOUT)
+            if r.status_code == 200:
                 healthy_workers.append(worker)
         except:
             pass
 
     for idx, worker in enumerate(healthy_workers):
         try:
-            r = requests.put(url = worker + "_SetWorkers", 
-                             params = {"workers": json.dumps(ALL_WORKERS), "workerIndex": idx}, 
-                             timeout = TIMEOUT)
+            r = requests.put(
+                url=worker + "_SetWorkers",
+                params={"workers": json.dumps(ALL_WORKERS), "workerIndex": idx},
+                timeout=TIMEOUT,
+            )
         except:
             pass
 
@@ -166,7 +178,7 @@ def start():
 # ----------------------------------- HealthCheck -----------------------------------
 def healthCheck():
     downWorkers = []
-    healthyWorkers = [] 
+    healthyWorkers = []
 
     # FOR TESTING PURPOSES
     for key, value in node_to_keys.items():
@@ -175,10 +187,10 @@ def healthCheck():
     # Get the healthy and not healthy workers
     for worker in ALL_WORKERS:
         try:
-            r = requests.get(url = worker + "/HealthCheck", timeout = TIMEOUT)
+            r = requests.get(url=worker + "/HealthCheck", timeout=TIMEOUT)
             if r.status_code == 200:
                 healthyWorkers.append(worker)
-            else: # server is down/overloaded
+            else:  # server is down/overloaded
                 downWorkers.append(worker)
         except:
             downWorkers.append(worker)
@@ -211,7 +223,7 @@ def healthCheck():
             if contains_url == "":
                 print("\U00002757\U00002757\U00002757ALL NODES ARE DOWN!!!\U00002757\U00002757\U00002757\n")
                 return
-            
+
             # forward to all nodes, break on the first successful request
             for i in range(start_node_idx + 1, start_node_idx + len(ALL_WORKERS)):
                 node_idx = i % len(ALL_WORKERS)
@@ -232,7 +244,7 @@ def healthCheck():
 @ns.expect(key_param)
 class RecordPutObject(Resource):
     @ns.doc("RecordPutObject")
-    @api.response(200, "Success", model = RecordPutObject200)
+    @api.response(200, "Success", model=RecordPutObject200)
     def post(self):
         # TODO check that request comes from worker
         body = request.form
@@ -251,7 +263,7 @@ class RecordPutObject(Resource):
 @ns.route("/ListObjects")
 class listObjects(Resource):
     @ns.doc("ListObjects")
-    @api.response(200, "Success", model = ListObjects200)
+    @api.response(200, "Success", model=ListObjects200)
     def get(self):
         return {"msg": "Success", "objects": json.dumps(key_to_filename)}, 200
 
@@ -261,8 +273,8 @@ class listObjects(Resource):
 @ns.expect(key_param)
 class deleteObject(Resource):
     @ns.doc("DeleteObject")
-    @api.response(200, "Success", model = DeleteObject200)
-    @api.response(404, "Error: Not Found", model = DeleteObject404)
+    @api.response(200, "Success", model=DeleteObject200)
+    @api.response(404, "Error: Not Found", model=DeleteObject404)
     def post(self):
         healthyWorkers = []
         args = request.args
@@ -273,34 +285,38 @@ class deleteObject(Resource):
 
         for worker in ALL_WORKERS:
             try:
-                r = requests.get(url = worker + "/HealthCheck", timeout = TIMEOUT)
-                
-                if r.status_code == 200: # success
+                r = requests.get(url=worker + "/HealthCheck", timeout=TIMEOUT)
+
+                if r.status_code == 200:  # success
                     healthyWorkers.append(worker)
             except:
                 pass
-        
+
         print(healthyWorkers, key_to_nodes, key_to_nodes[key])
         # for each node that holds this key
         for node in key_to_nodes[key]:
             # if the node is a healthy node
             if node in healthyWorkers:
-                
+
                 # try to call the healthy node's _DeleteObject function
                 try:
-                    r = requests.put(url = node + "/_DeleteObject", params={"key": key}, timeout = TIMEOUT)
-                    
+                    r = requests.put(
+                        url=node + "/_DeleteObject",
+                        params={"key": key},
+                        timeout=TIMEOUT,
+                    )
+
                     if r.status_code != 200:
                         return {"msg": "internal server error"}, 500
                 except:
                     pass
-                
+
         key_to_filename.pop(key, None)
         key_to_nodes.pop(key, None)
-        
+
         for node in node_to_keys:
             node_to_keys[node].remove(key)
-                    
+
         return {"msg": "Success"}, 200
 
 
@@ -309,8 +325,8 @@ class deleteObject(Resource):
 @ns.expect(key_param)
 class findObject(Resource):
     @ns.doc("FindObject")
-    @api.response(200, "Success", model = FindObject200)
-    @api.response(404, "Error: Not Found", model = FindObject404)
+    @api.response(200, "Success", model=FindObject200)
+    @api.response(404, "Error: Not Found", model=FindObject404)
     def get(self):
         args = request.args
         key = args.get("key")
@@ -319,7 +335,8 @@ class findObject(Resource):
             return {"found": True, "filename": key_to_filename[key]}, 200
         else:
             return {"found": False}, 404
-        
+
+
 # Main
 if __name__ == "__main__":
     app.run(debug=True)

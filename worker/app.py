@@ -6,7 +6,7 @@ from tracemalloc import start
 import requests
 from io import BytesIO
 
-from flask import Flask, request, flash, send_file
+from flask import Flask, request, flash, send_file, jsonify
 from flask_restx import Api, Resource, fields
 
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -18,7 +18,7 @@ app.wsgi_app = ProxyFix(app.wsgi_app)
 api = Api(
     app,
     version="0.0.2",
-    title="S4",
+    title="S4 Worker Node",
     description="Super Simple Storage System",
 )
 
@@ -289,11 +289,15 @@ class put_object(Resource):
 
         f = file.read()
         while replicas != 0:
-            r = requests.put(
-                url_array[curr_replica] + "_PutObject",
-                params={"key": key},
-                files={"file": f},
-            )
+            try:
+                r = requests.put(
+                    url_array[curr_replica] + "_PutObject",
+                    params={"key": key},
+                    files={"file": f},
+                )
+            except:
+                pass
+            
             if r.status_code == 201:
                 replicas -= 1
                 replica_nodes.append(url_array[curr_replica])
@@ -435,14 +439,15 @@ class _forward_object(Resource):
         key = args.get("key")
         forwardingToNode = args.get("forwardingToNode")
         file = open(os.path.join(FILE_PATH, key))
-        r = requests.put(
-            url_array[forwardingToNode] + "/_PutObject",
-            params={"key": key},
-            files={"file": file},
-        )
-        return r
-
-
+        
+        print("\nforwardingTo: " + forwardingToNode + "\n")
+        
+        # url_array[forwardingToNode] + "/_PutObject",
+        try:
+            return requests.put(url = forwardingToNode + "/_PutObject", params = {"key": key}, files = {"file": file})
+        except:
+            pass
+        
 @ns.route("/_JoinNetwork")
 class _join_network(Resource):
     @ns.doc("_JoinNetwork")

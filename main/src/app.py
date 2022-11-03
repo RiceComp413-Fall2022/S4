@@ -8,9 +8,10 @@ import secrets, os
 from collections import defaultdict
 
 from time import sleep
+from datetime import datetime
 from threading import Timer
 
-from flask import Flask, request, flash, send_file
+from flask import Flask, request, flash, send_file, jsonify
 from flask_restx import Api, Resource, fields
 
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -89,7 +90,8 @@ healthy_workers = []
 ALL_WORKERS = [
     "http://127.0.0.1:5001/", 
     "http://127.0.0.1:5002/", 
-    "http://127.0.0.1:5003/"
+    "http://127.0.0.1:5003/",
+    "http://127.0.0.1:5004/",
     ]
 
 # Repeated timer 
@@ -129,12 +131,11 @@ file_param.add_argument("file", location="files", type=FileStorage)
 
 # ----------------------------------- StartNetwork -----------------------------------
 
-# ??? THERE IS A SLIGHT PROBLEM!!! YOU MUST RESTART LOCALHOST FOR THIS START TO RUN. IF LOCALHOST IS ALREADY OPEN ON UR
-# BROWSER WHEN YOU DO FLASK RUN, NO REQUEST WILL BE MADE AND SO THIS FUNCTION CAN'T CALL BEFORE A REQUEST IF NO 
-# REQUEST IS MADE.
+# YOU MUST RESTART LOCALHOST FOR THIS START TO RUN. IF LOCALHOST IS ALREADY OPEN ON YOUR BROWSER WHEN YOU TYPE FLASK RUN, 
+# NO REQUEST WILL BE MADE AND SO THIS FUNCTION CAN'T CALL BEFORE A REQUEST IF NO REQUEST IS MADE.
 @app.before_first_request
 def start():
-    rt = RepeatedTimer(30, healthCheck);
+    rt = RepeatedTimer(10, healthCheck);
     
     for worker in ALL_WORKERS:
         try:
@@ -143,6 +144,7 @@ def start():
                 healthy_workers.append(worker)
         except:
             pass
+
     for idx, worker in enumerate(healthy_workers):
         try:
             r = requests.put(url = worker + "_SetWorkers", 
@@ -151,14 +153,12 @@ def start():
         except:
             pass
 
-    print(f"******** Launched {len(healthy_workers)} / {len(ALL_WORKERS)} nodes ********")
+    print(f"\n\n-------------- Running {len(healthy_workers)} / {len(ALL_WORKERS)} nodes --------------\n\n")
     
     if len(healthy_workers) == len(ALL_WORKERS):
         return {"msg": "Success"}, 200
     elif len(healthy_workers) > 0:
-        return {
-            "msg": f"Partial success, launched {len(healthy_workers)} out of {len(ALL_WORKERS)} workers"
-        }, 200
+        return {"msg": f"Partial success, launched {len(healthy_workers)} out of {len(ALL_WORKERS)} workers"}, 200
     else:
         return {"msg": "Failed to launch worker nodes"}, 500
 
@@ -168,6 +168,10 @@ def healthCheck():
     downWorkers = []
     healthyWorkers = [] 
 
+    # FOR TESTING PURPOSES
+    for key, value in node_to_keys.items():
+        print("node " + key + "\nkey " + str(value))
+            
     # Get the healthy and not healthy workers
     for worker in ALL_WORKERS:
         try:
@@ -177,42 +181,51 @@ def healthCheck():
             else: # server is down/overloaded
                 downWorkers.append(worker)
         except:
-            pass
+            downWorkers.append(worker)
     
+    now = datetime.now()
+    dt_string = now.strftime("%H:%M:%S")
+
     if len(downWorkers) == 0:
-        print("All nodes are healthy!\n")
-            
+        print("\nAll nodes are \U0001f600healthy\U0001f600 at " + dt_string + "\n")
+        
     # for each down node
     for downNode in downWorkers:
-        print("Node " + downNode + " is down.\n")
+        print("\nNode " + downNode + " is \U00002757down!\U00002757\n")
         
         # get the object that was in this downNode from a node that's up and has a copy of that object
-        for key in node_to_keys.get(downNode): # for every file in the down node
+        for key in node_to_keys[downNode]: # for every file in the down node
             start_node_idx = ALL_WORKERS.index(downNode) # start at the down node
 
             contains_url = ""
+            
             # iterate through all nodes (including looping) to get a node with the file of that down node, 
             # but don't loop back to the down node
             for i in range(start_node_idx + 1, start_node_idx + len(ALL_WORKERS)):
                 node_idx = i % len(ALL_WORKERS)
                 node_url = ALL_WORKERS[node_idx]
-                if key in node_to_keys.get(node_url) and node_url in healthyWorkers:
+                
+                if key in node_to_keys[node_url] and node_url in healthyWorkers:
                     contains_url = node_url
 
             if contains_url == "":
-                print("ALL NODES ARE DOWN!!! \n")
+                print("\U00002757\U00002757\U00002757ALL NODES ARE DOWN!!!\U00002757\U00002757\U00002757\n")
                 return
             
             # forward to all nodes, break on the first successful request
             for i in range(start_node_idx + 1, start_node_idx + len(ALL_WORKERS)):
                 node_idx = i % len(ALL_WORKERS)
                 node_url = ALL_WORKERS[node_idx]
-                if key not in node_to_keys.get(node_url):
-                    r = requests.put(contains_url + "/_ForwardObject", params={"key": key, "forwardingToNode": node_url})
-
-                    if r.status_code == 201:
-                        break
                 
+                if key not in node_to_keys[node_url]:
+                    try: 
+                        r = jsonify(requests.put(contains_url + "/_ForwardObject", params={"key": key, "forwardingToNode": node_url}))
+                    
+                        if r.status_code == 200:
+                            break
+                    except:
+                        pass
+            
 
 # ----------------------------------- RecordPutObject -----------------------------------
 @ns.route("/RecordPutObject")
@@ -227,9 +240,10 @@ class RecordPutObject(Resource):
 
         key_to_filename[key] = filename
         key_to_nodes[key] = nodes
-        print(node_to_keys, nodes)
+                
         for node in nodes:
             node_to_keys[node].add(key)
+            
         return {"msg": "Success"}, 200
 
 
@@ -253,6 +267,7 @@ class deleteObject(Resource):
         healthyWorkers = []
         args = request.args
         key = args.get("key")
+        
         if key not in key_to_filename:
             return {"msg": "file not found"}, 400
 
@@ -299,6 +314,7 @@ class findObject(Resource):
     def get(self):
         args = request.args
         key = args.get("key")
+        
         if key in key_to_filename:
             return {"found": True, "filename": key_to_filename[key]}, 200
         else:

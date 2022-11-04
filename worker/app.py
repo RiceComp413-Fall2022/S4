@@ -27,7 +27,7 @@ ns = api.namespace("", description="S4 API Endpoints")
 # Fields
 node_number = -1
 url_array = []
-main_url = "http://127.0.0.1:5000"
+main_url = "http://127.0.0.1:5000/"
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~ API Model for example header/body and the response ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Key200 = api.model(
@@ -188,7 +188,7 @@ class get_object(Resource):
             return {"msg": "Key not specified"}, 400
 
         # check if key exists
-        r = requests.get(url=main_url + "/FindObject", params={"key": key})
+        r = requests.get(url=main_url + "FindObject", params={"key": key})
 
         if r.status_code == 404:
             return {"msg": "Key does not exist"}, 404
@@ -212,7 +212,7 @@ class get_object(Resource):
         # try the first node
         try:
             r = requests.get(
-                url_array[curr_replica] + "/_GetObject",
+                url_array[curr_replica] + "_GetObject",
                 params={"key": key, "filename": filename},
                 stream=True,
             )
@@ -227,7 +227,7 @@ class get_object(Resource):
         while curr_replica != start_replica:
             try:
                 r = requests.get(
-                    url_array[curr_replica] + "/_GetObject",
+                    url_array[curr_replica] + "_GetObject",
                     params={"key": key, "filename": filename},
                 )
                 if r.status_code == 200:
@@ -268,7 +268,7 @@ class put_object(Resource):
             return {"msg": "Empty filename"}, 400
 
         # check if key is unique
-        r = requests.get(url=main_url + "/FindObject", params={"key": key})
+        r = requests.get(url=main_url + "FindObject", params={"key": key})
 
         if r.status_code == 200:
             return {"msg": "Key not unique"}, 400
@@ -292,6 +292,7 @@ class put_object(Resource):
                 if curr_replica == start_replica:
                     replicas = 0
 
+        file.seek(0)
         f = file.read()
         while replicas != 0:
             try:
@@ -301,6 +302,7 @@ class put_object(Resource):
                     files={"file": f},
                 )
             except:
+                print("Error while putting file")
                 pass
             
             if r.status_code == 201:
@@ -316,7 +318,7 @@ class put_object(Resource):
         # TODO: do we need key and filename? why data vs. params?
         # Record data in main node
         r = requests.post(
-            main_url + "/RecordPutObject",
+            main_url + "RecordPutObject",
             data={"key": key, "filename": filename, "nodes": json.dumps(replica_nodes)},
         )
 
@@ -330,7 +332,7 @@ class list_objects(Resource):
     @api.response(200, "Success", model=ListObjects200)
     def get(self):
         # Get key to file name mapping from main node
-        r = requests.get(url=main_url + "/ListObjects")
+        r = requests.get(url=main_url + "ListObjects")
         if r.status_code == 200:
             response = r.json()
             keys_to_filenames = json.loads(response["objects"])
@@ -359,7 +361,7 @@ class delete_object(Resource):
         if not key:
             return {"msg": "Key not specified"}, 400
 
-        r = requests.post(main_url + "/DeleteObject", params={"key": key})
+        r = requests.post(main_url + "DeleteObject", params={"key": key})
 
         if r.status_code == 200:
             return {"msg": "The object was deleted successfully."}, 200
@@ -443,13 +445,13 @@ class _forward_object(Resource):
         args = request.args
         key = args.get("key")
         forwardingToNode = args.get("forwardingToNode")
-        file = open(os.path.join(FILE_PATH, key))
+        file = open(os.path.join(FILE_PATH, key), 'rb')
         
         print("\nforwardingTo: " + forwardingToNode + "\n")
         
         # url_array[forwardingToNode] + "/_PutObject",
         try:
-            return requests.put(url = forwardingToNode + "/_PutObject", params = {"key": key}, files = {"file": file})
+            return requests.put(url = forwardingToNode + "_PutObject", params = {"key": key}, files = {"file": file})
         except:
             pass
         

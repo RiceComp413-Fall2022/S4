@@ -94,6 +94,7 @@ FILE_PATH = "../tests"
 key_to_filename = {}  # string to string
 key_to_nodes = {}  # string to list[string]
 node_to_keys = defaultdict(set)  # string to set[string]
+processed_down_nodes = set()
 
 healthy_workers = []
 ALL_WORKERS = [
@@ -203,6 +204,9 @@ def healthCheck():
         
     # for each down node
     for downNode in downWorkers:
+        if downNode in processed_down_nodes:
+            continue
+        processed_down_nodes.add(downNode)
         print("\nNode " + downNode + " is \U00002757down!\U00002757\n")
         
         # get the object that was in this downNode from a node that's up and has a copy of that object
@@ -234,6 +238,8 @@ def healthCheck():
                         r = jsonify(requests.put(contains_url + "/_ForwardObject", params={"key": key, "forwardingToNode": node_url}))
                     
                         if r.status_code == 200:
+                            node_to_keys[node_url].add(key)
+                            key_to_nodes[key].append(node_url)
                             break
                     except:
                         pass

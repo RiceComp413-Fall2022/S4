@@ -445,13 +445,15 @@ class _forward_object(Resource):
         args = request.args
         key = args.get("key")
         forwardingToNode = args.get("forwardingToNode")
-        file = open(os.path.join(FILE_PATH, key), 'rb')
+        file = open(os.path.join(FILE_PATH, key), 'rb').read()
         
         print("\nforwardingTo: " + forwardingToNode + "\n")
         
         # url_array[forwardingToNode] + "/_PutObject",
         try:
-            return requests.put(url = forwardingToNode + "_PutObject", params = {"key": key}, files = {"file": file})
+            r = requests.put(url = forwardingToNode + "_PutObject", params = {"key": key}, files = {"file": file})
+            return r.status_code
+
         except:
             pass
         

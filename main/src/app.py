@@ -88,7 +88,7 @@ FindObject404 = api.model(
     },
 )
 
-TIMEOUT = 0.1
+TIMEOUT = 10
 FILE_PATH = "../tests"
 # FILE_PATH = os.getenv("FILE_PATH")
 
@@ -101,11 +101,11 @@ ipAddr = socket.gethostbyname(hostname)
 main_url = f"http://{ipAddr}:5000/"
 
 healthy_workers = []
+
 ALL_WORKERS = [
-    "http://127.0.0.1:5001/", 
-    "http://127.0.0.1:5002/", 
-    "http://127.0.0.1:5003/",
-    "http://127.0.0.1:5004/",
+    "http://168.5.50.116:5001/", 
+    "http://10.98.77.126:5001/",
+    "http://10.98.77.126:5002/",
     ]
 
 # Repeated timer
@@ -256,13 +256,18 @@ class RecordPutObject(Resource):
     @ns.doc("RecordPutObject")
     @api.response(200, "Success", model=RecordPutObject200)
     def post(self):
+        global node_to_keys
+        global key_to_nodes
+        global key_to_filename
+        
         # TODO check that request comes from worker
         body = request.form
         key, filename, nodes = body["key"], body["filename"], json.loads(body["nodes"])
 
         key_to_filename[key] = filename
         key_to_nodes[key] = nodes
-                
+        
+
         for node in nodes:
             node_to_keys[node].add(key)
             
@@ -275,6 +280,8 @@ class listObjects(Resource):
     @ns.doc("ListObjects")
     @api.response(200, "Success", model=ListObjects200)
     def get(self):
+        global key_to_filename
+        
         return {"msg": "Success", "objects": json.dumps(key_to_filename)}, 200
 
 
@@ -289,6 +296,11 @@ class deleteObject(Resource):
         healthyWorkers = []
         args = request.args
         key = args.get("key")
+        
+        global ALL_WORKERS
+        global node_to_keys
+        global key_to_nodes
+        global key_to_filename
         
         if key not in key_to_filename:
             return {"msg": "file not found"}, 400
@@ -324,6 +336,8 @@ class deleteObject(Resource):
         key_to_filename.pop(key, None)
         key_to_nodes.pop(key, None)
 
+        for key, value in node_to_keys.items():
+            print("key is: " + key, "value is: " + value)
         for node in node_to_keys:
             node_to_keys[node].remove(key)
 
@@ -340,6 +354,10 @@ class findObject(Resource):
     def get(self):
         args = request.args
         key = args.get("key")
+        
+        global node_to_keys
+        global key_to_nodes
+        global key_to_filename
         
         if key in key_to_filename:
             return {"found": True, "filename": key_to_filename[key]}, 200

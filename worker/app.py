@@ -271,7 +271,7 @@ class put_object(Resource):
             return {"msg": "Empty filename"}, 400
 
         # check if key is unique
-        r = requests.get(url=main_url + "FindObject", params={"key": key})
+        r = requests.get(url=main_url + "/FindObject", params={"key": key})
 
         if r.status_code == 200:
             return {"msg": "Key not unique"}, 400
@@ -477,6 +477,9 @@ class _set_workers(Resource):
     # TODO add api response model
     def put(self):
         args = request.args
+        global url_array
+        global node_number
+        global main_url
         url_array = json.loads(args.get("workers"))
         node_number = int(args.get("workerIndex"))
         main_url = args.get("mainUrl")

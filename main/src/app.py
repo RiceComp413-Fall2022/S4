@@ -6,6 +6,7 @@ import atexit
 import requests
 import secrets, os
 from collections import defaultdict
+import socket
 
 from time import sleep
 from datetime import datetime
@@ -95,6 +96,9 @@ key_to_filename = {}  # string to string
 key_to_nodes = {}  # string to list[string]
 node_to_keys = defaultdict(set)  # string to set[string]
 processed_down_nodes = set()
+hostname = socket.gethostname()
+ipAddr = socket.gethostbyname(hostname)
+main_url = f"http://{ipAddr}:5000"
 
 healthy_workers = []
 ALL_WORKERS = [
@@ -160,7 +164,7 @@ def start():
         try:
             r = requests.put(
                 url=worker + "_SetWorkers",
-                params={"workers": json.dumps(ALL_WORKERS), "workerIndex": idx},
+                params={"workers": json.dumps(ALL_WORKERS), "workerIndex": idx, "mainUrl": main_url},
                 timeout=TIMEOUT,
             )
         except:

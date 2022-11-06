@@ -27,7 +27,7 @@ ns = api.namespace("", description="S4 API Endpoints")
 # Fields
 node_number = -1
 url_array = []
-main_url = "http://127.0.0.1:5000/"
+main_url = ""
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~ API Model for example header/body and the response ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Key200 = api.model(
@@ -138,7 +138,7 @@ DeleteObject200 = api.model(
     },
 )
 
-FILE_PATH = "../tests"
+FILE_PATH = "../worker2"
 # FILE_PATH = os.getenv("FILE_PATH")
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Endpoint parameters ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -147,6 +147,9 @@ key_param.add_argument("key", type=str)
 
 filename_param = ns.parser()
 filename_param.add_argument("key", type=str)
+
+main_url_param = ns.parser()
+main_url_param.add_argument("mainUrl", type=str)
 
 workers_param = ns.parser()
 workers_param.add_argument("workers", type=list)
@@ -468,15 +471,15 @@ class _join_network(Resource):
 @ns.route("/_SetWorkers")
 @ns.expect(workers_param)
 @ns.expect(worker_idx_param)
+@ns.expect(main_url_param)
 class _set_workers(Resource):
     @ns.doc("_SetWorkers")
     # TODO add api response model
     def put(self):
         args = request.args
-        global url_array
-        global node_number
         url_array = json.loads(args.get("workers"))
         node_number = int(args.get("workerIndex"))
+        main_url = args.get("mainUrl")
         return 200
 
 

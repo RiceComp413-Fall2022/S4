@@ -185,6 +185,12 @@ def healthCheck():
     downWorkers = []
     healthyWorkers = []
 
+    global ALL_WORKERS
+    global node_to_keys
+    global key_to_nodes
+    global key_to_filename
+    global processed_down_nodes
+    
     # FOR TESTING PURPOSES
     for key, value in node_to_keys.items():
         print("node " + key + "\nkey " + str(value))
@@ -314,7 +320,9 @@ class deleteObject(Resource):
             except:
                 pass
 
-        print(healthyWorkers, key_to_nodes, key_to_nodes[key])
+        # print(dict(node_to_keys))
+        # print(healthyWorkers, key_to_nodes, key_to_nodes[key])
+        
         # for each node that holds this key
         for node in key_to_nodes[key]:
             # if the node is a healthy node
@@ -333,14 +341,12 @@ class deleteObject(Resource):
                 except:
                     pass
 
+        for node in key_to_nodes[key]:
+            node_to_keys[node].remove(key)
+            
         key_to_filename.pop(key, None)
         key_to_nodes.pop(key, None)
-
-        for key, value in node_to_keys.items():
-            print("key is: " + key, "value is: " + value)
-        for node in node_to_keys:
-            node_to_keys[node].remove(key)
-
+    
         return {"msg": "Success"}, 200
 
 

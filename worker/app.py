@@ -279,7 +279,7 @@ class put_object(Resource):
 
         curr_replica = hash(key)
 
-        replicas = 3
+        replicas = 2
         start_replica = curr_replica
         replica_nodes = []
         if curr_replica == node_number:

@@ -98,7 +98,7 @@ node_to_keys = defaultdict(set)  # string to set[string]
 processed_down_nodes = set()
 hostname = socket.gethostname()
 ipAddr = socket.gethostbyname(hostname)
-main_url = f"http://{ipAddr}:5000"
+main_url = f"http://{ipAddr}:5000/"
 
 healthy_workers = []
 ALL_WORKERS = [

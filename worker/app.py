@@ -138,7 +138,7 @@ DeleteObject200 = api.model(
     },
 )
 
-FILE_PATH = "../worker2"
+FILE_PATH = "../tests"
 # FILE_PATH = os.getenv("FILE_PATH")
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Endpoint parameters ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -95,17 +95,18 @@ FILE_PATH = "../tests"
 key_to_filename = {}  # string to string
 key_to_nodes = {}  # string to list[string]
 node_to_keys = defaultdict(set)  # string to set[string]
+
 processed_down_nodes = set()
+
 hostname = socket.gethostname()
 ipAddr = socket.gethostbyname(hostname)
 main_url = f"http://{ipAddr}:5000/"
+# main_url = "http://127.0.0.1:5000/"
 
 healthy_workers = []
 
 ALL_WORKERS = [
-    "http://168.5.50.116:5001/", 
-    "http://10.98.77.126:5001/",
-    "http://10.98.77.126:5002/",
+    "http://127.0.0.1:5001/"
     ]
 
 # Repeated timer
@@ -198,7 +199,7 @@ def healthCheck():
     # Get the healthy and not healthy workers
     for worker in ALL_WORKERS:
         try:
-            r = requests.get(url=worker + "/HealthCheck", timeout=TIMEOUT)
+            r = requests.get(url=worker + "/HealthCheck")
             if r.status_code == 200:
                 healthyWorkers.append(worker)
             else:  # server is down/overloaded

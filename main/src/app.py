@@ -33,6 +33,29 @@ api = Api(
 ns = api.namespace("", description="S4 API Endpoints")
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~ API Model for example header/body and the response ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+DoubleNodes200 = api.model(
+    "DoubleNodes Success",
+    {
+        "msg": fields.String(
+            required=True,
+            description="Doubles the number of nodes in the system",
+            example="Success",
+        ),
+    },
+)
+
+DoubleNodes400 = api.model(
+    "DoubleNodes Failure",
+    {
+        "msg": fields.String(
+            required=True,
+            description="Doubles the number of nodes in the system",
+            example="Needs X healthy nodes",
+        ),
+    },
+)
+
+
 RecordPutObject200 = api.model(
     "RecordPutObject Success",
     {
@@ -104,9 +127,9 @@ main_url = f"http://{ipAddr}:5000/"
 healthy_workers = []
 
 ALL_WORKERS = [
-    "http://168.5.50.116:5001/",
-    "http://10.98.77.126:5001/",
-    "http://10.98.77.126:5002/",
+    # "http://168.5.50.116:5001/",
+    # "http://10.98.77.126:5001/",
+    # "http://10.98.77.126:5002/",
 ]
 
 # Repeated timer
@@ -142,6 +165,9 @@ key_param.add_argument("Key", type=str)
 
 file_param = ns.parser()
 file_param.add_argument("file", location="files", type=FileStorage)
+
+arr_param = ns.parser()
+arr_param.add_argument("nodes", type=str, action="append")
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Actual endpoints ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -273,11 +299,17 @@ def healthCheck():
 
 # ----------------------------------- DoubleWorkers -----------------------------------
 @ns.route("/DoubleWorkers")
-@ns.expect(key_param)
+@ns.expect(arr_param)
 class DoubleWorkers(Resource):
     @ns.doc("DoubleWorkers")
-    @api.response(200, "Success", model=RecordPutObject200)
+    @api.response(200, "Success", model=DoubleNodes200)
+    @api.response(400, "Failure", model=DoubleNodes400)
     def post(self):
+        global ALL_WORKERS
+        global node_to_keys
+        global key_to_nodes
+        global key_to_filename
+        global processed_down_nodes
         new_nodes = request.form["nodes"]
         nodes_to_add = []
         for worker in new_nodes:
@@ -287,8 +319,8 @@ class DoubleWorkers(Resource):
                     nodes_to_add.append(worker)
             except:
                 pass
-        if len(nodes_to_add) != len(ALL_WORKERS):
-            return {"msg": f"Needs {len(ALL_WORKERS)} healthy nodes"}, 400
+        if len(nodes_to_add) < len(ALL_WORKERS):
+            return {"msg": f"Needs at least {len(ALL_WORKERS)} healthy nodes"}, 400
         ALL_WORKERS += nodes_to_add
 
         # Update worker list

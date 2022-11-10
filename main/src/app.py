@@ -310,7 +310,7 @@ class DoubleWorkers(Resource):
         global key_to_nodes
         global key_to_filename
         global processed_down_nodes
-        new_nodes = request.form["nodes"]
+        new_nodes = json.loads(request.form["nodes"])
         nodes_to_add = []
         for worker in new_nodes:
             try:
@@ -506,7 +506,7 @@ class findObject(Resource):
         global key_to_nodes
         global key_to_filename
 
-        if key in key_to_filename:
+        if key in key_to_nodes:
             return {"found": True, "filename": key_to_filename[key]}, 200
         else:
             return {"found": False}, 404

@@ -264,10 +264,12 @@ class put_object(Resource):
             return {"msg": "No file specified"}, 404
 
         file = request.files.get("file")
-        filename = secure_filename(request.args.get("filename"))
+        filename = request.args.get("filename")
         # file checks
         if not filename:
             filename = secure_filename(file.filename)
+        else:
+            filename = secure_filename(filename)
         if not filename:
             return {"msg": "Empty filename"}, 400
 

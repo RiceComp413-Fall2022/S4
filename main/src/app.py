@@ -367,7 +367,7 @@ class DoubleWorkers(Resource):
                 try:
                     r = requests.put(
                         node + "PutObject",
-                        params={"key": key},
+                        params={"key": key, "filename": key_to_filename[key]},
                         files={"file": f},
                     )
                     if r.status_code == 201:

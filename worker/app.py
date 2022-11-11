@@ -146,7 +146,7 @@ key_param = ns.parser()
 key_param.add_argument("key", type=str)
 
 filename_param = ns.parser()
-filename_param.add_argument("key", type=str)
+filename_param.add_argument("filename", type=str)
 
 main_url_param = ns.parser()
 main_url_param.add_argument("mainUrl", type=str)
@@ -244,7 +244,7 @@ class get_object(Resource):
 
 # ----------------------------------- PutObject -----------------------------------
 @ns.route("/PutObject")
-@ns.expect(file_param, key_param)
+@ns.expect(file_param, key_param, filename_param)
 class put_object(Resource):
     @ns.doc("PutObject")
     @api.response(201, "Object successfully saved", model=PutObject201)
@@ -264,9 +264,12 @@ class put_object(Resource):
             return {"msg": "No file specified"}, 404
 
         file = request.files.get("file")
-
+        filename = request.args.get("filename")
         # file checks
-        filename = secure_filename(file.filename)
+        if not filename:
+            filename = secure_filename(file.filename)
+        else:
+            filename = secure_filename(filename)
         if not filename:
             return {"msg": "Empty filename"}, 400
 
@@ -307,7 +310,7 @@ class put_object(Resource):
             except:
                 print("Error while putting file")
                 pass
-            
+
             if r.status_code == 201:
                 replicas -= 1
                 replica_nodes.append(url_array[curr_replica])
@@ -448,18 +451,23 @@ class _forward_object(Resource):
         args = request.args
         key = args.get("key")
         forwardingToNode = args.get("forwardingToNode")
-        file = open(os.path.join(FILE_PATH, key), 'rb').read()
-        
+        file = open(os.path.join(FILE_PATH, key), "rb").read()
+
         print("\nforwardingTo: " + forwardingToNode + "\n")
-        
+
         # url_array[forwardingToNode] + "/_PutObject",
         try:
-            r = requests.put(url = forwardingToNode + "_PutObject", params = {"key": key}, files = {"file": file})
+            r = requests.put(
+                url=forwardingToNode + "_PutObject",
+                params={"key": key},
+                files={"file": file},
+            )
             return r.status_code
 
         except:
             pass
-        
+
+
 @ns.route("/_JoinNetwork")
 class _join_network(Resource):
     @ns.doc("_JoinNetwork")

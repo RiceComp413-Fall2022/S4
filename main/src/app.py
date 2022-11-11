@@ -256,6 +256,10 @@ def healthCheck():
                     except:
                         pass
             
+@ns.route("/HealthCheck")
+class HealthCheck(Resource):
+    def get(self):
+        return {"msg": "Success"}, 200
 
 # ----------------------------------- RecordPutObject -----------------------------------
 @ns.route("/RecordPutObject")

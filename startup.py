@@ -17,7 +17,7 @@ if num_nodes < 2:
 ec2 = boto3.resource('ec2')
 
 instances = ec2.create_instances(
-    ImageId='ami-07cc33055027d7da8', # Custom AMI with dependencies preinstalled
+    ImageId='ami-03a56b7b6b25caf7b', # Custom AMI with dependencies preinstalled
     InstanceType='t2.micro', # 2 vCPU, 4 GiB memory
     KeyName='S4', # keypair for authentication
     MaxCount=num_nodes,
@@ -85,12 +85,12 @@ for i, node in enumerate(node_ips):
     c.run("sudo yum update -y")
     c.run("cd S4 && git pull && source ./venv/bin/activate && pip install -r requirements.txt")
     c.put(node_dns_f, remote='S4/main/src/nodes.txt')
-
-    c.run("cd worker/src")
     if i < len(node_ips) - 1: # worker nodes
-        c.run(f"./flask run --host=0.0.0.0 -p {port}")
+        # c.run(f"cd S4 && source ./venv/bin/activate && cd worker && flask run --host=0.0.0.0 -p {port}", asynchronous=True)
+        c.run(f"tmux new-session -d \"cd S4 && source ./venv/bin/activate && cd worker && flask run --host=0.0.0.0 -p {port}\"", asynchronous=True)
     else: # main node
-        c.run(f"cd ../../main/src && ./flask run --host=0.0.0.0 -p {port}")
+        # c.run(f"cd S4 && source ./venv/bin/activate && cd main/src && flask run --host=0.0.0.0 -p {port}", asynchronous=True)
+        c.run(f"tmux new-session -d \"cd S4 && source ./venv/bin/activate && cd main/src && flask run --host=0.0.0.0 -p {port}\"", asynchronous=True)
         
     c.close()
 
@@ -98,7 +98,7 @@ def test_node(node):
     success = True
     try:
         # TODO: change to health check
-        requests.get(f"http://{node}:{port}/", timeout=5)
+        requests.get(f"http://{node}:{port}/HealthCheck", timeout=5)
     except:
         success = False
     return success

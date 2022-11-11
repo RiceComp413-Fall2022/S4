@@ -89,8 +89,8 @@ FindObject404 = api.model(
 )
 
 TIMEOUT = 10
-FILE_PATH = "../tests"
-# FILE_PATH = os.getenv("FILE_PATH")
+PORT_NUM = 8080
+# FILE_PATH = os.getenv("PORT_NUM")
 
 key_to_filename = {}  # string to string
 key_to_nodes = {}  # string to list[string]
@@ -100,14 +100,15 @@ processed_down_nodes = set()
 
 hostname = socket.gethostname()
 ipAddr = socket.gethostbyname(hostname)
-main_url = f"http://{ipAddr}:5000/"
+main_url = f"http://{ipAddr}:{PORT_NUM}/"
 # main_url = "http://127.0.0.1:5000/"
 
 healthy_workers = []
 
-ALL_WORKERS = [
-    "http://127.0.0.1:5001/"
-    ]
+with open("nodes.txt") as f:
+    url_list = f.readlines()
+ALL_WORKERS = [url.strip() for url in url_list]
+print(ALL_WORKERS)
 
 # Repeated timer
 class RepeatedTimer(object):

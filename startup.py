@@ -11,6 +11,9 @@ from fabric import Connection # pip install fabric
 
 port = 8080
 num_nodes = int(sys.argv[1])
+if num_nodes < 2:
+    print("At least 2 nodes are required for S4.")
+    exit()
 ec2 = boto3.resource('ec2')
 
 instances = ec2.create_instances(
@@ -47,15 +50,15 @@ instances = ec2.create_instances(
 )
 
 #The last dns in node_dns will be the main node, the rest will be workers
-node_dns = []
-
+node_ips = []
 for instance in instances:
     instance.wait_until_running()
     instance.load()
-    node_dns.append(instance.public_dns_name)
+    node_ips.append(instance.public_ip_address)
 
-node_dns_f = io.StringIO("\n".join(x + f":{port}" for x in node_dns))
-
+node_urls = ["https://" + x + f":{port}/" for x in node_ips]
+node_dns_f = io.StringIO("\n".join(node_urls))
+print(node_urls)
 def connect_retry(host, user, key):
     while True:
         try:
@@ -75,31 +78,27 @@ def connect_retry(host, user, key):
             print(f"Exception while connecting to host {host}: {e}")
             time.sleep(5)
 
-for i, node in enumerate(node_dns):
+for i, node in enumerate(node_ips):
+    print(f"Connecting to node {node}, idx {i}")
     c = connect_retry(node, "ec2-user", "S4.pem")
 
     c.run("sudo yum update -y")
-    c.run("sudo yum install git tmux -y")
-
-    c.run("git clone https://github.com/RiceComp413-Fall2022/S4.git")
-    c.run("cd S4 && python3 -m venv ./venv && source ./venv/bin/activate && pip install -r requirements.txt")
-
+    c.run("cd S4 && git pull && source ./venv/bin/activate && pip install -r requirements.txt")
     c.put(node_dns_f, remote='S4/main/src/nodes.txt')
 
     c.run("cd worker/src")
-
-    if i < len(node_dns) - 1: # worker node
+    if i < len(node_ips) - 1: # worker nodes
         c.run(f"./flask run --host=0.0.0.0 -p {port}")
     else: # main node
         c.run(f"cd ../../main/src && ./flask run --host=0.0.0.0 -p {port}")
         
-    # TODO: update the main file to use nodes.txt
     c.close()
 
 def test_node(node):
     success = True
     try:
-        requests.get(f"http://{node}:{port}", timeout=5)
+        # TODO: change to health check
+        requests.get(f"http://{node}:{port}/", timeout=5)
     except:
         success = False
     return success
@@ -109,8 +108,15 @@ def wait_node(node):
     while not test_node(node):
         time.sleep(5)
 
-for node in node_dns:
+for node in node_ips:
     wait_node(node)
+
+for idx, url in enumerate(node_urls):
+    if idx < len(node_urls) - 1:
+        print(f"Worker node: {url}")
+    else:
+        print(f"Main node: {url}")
+# TODO: check changes in code, then push to git and test
 
 # elb = boto3.client('elbv2')
 

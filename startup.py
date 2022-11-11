@@ -49,15 +49,15 @@ instances = ec2.create_instances(
     ]
 )
 
-#The last dns in node_dns will be the main node, the rest will be workers
+#The last ip in node_ips will be the main node, the rest will be workers
 node_ips = []
 for instance in instances:
     instance.wait_until_running()
     instance.load()
     node_ips.append(instance.public_ip_address)
 
-node_urls = ["https://" + x + f":{port}/" for x in node_ips]
-node_dns_f = io.StringIO("\n".join(node_urls))
+node_urls = ["http://" + x + f":{port}/" for x in node_ips]
+node_ips_f = io.StringIO("\n".join(node_urls))
 print(node_urls)
 def connect_retry(host, user, key):
     while True:
@@ -82,9 +82,9 @@ for i, node in enumerate(node_ips):
     print(f"Connecting to node {node}, idx {i}")
     c = connect_retry(node, "ec2-user", "S4.pem")
 
-    c.run("sudo yum update -y")
+    c.run("sudo yum update -y && sudo yum install tmux -y")
     c.run("cd S4 && git pull && source ./venv/bin/activate && pip install -r requirements.txt")
-    c.put(node_dns_f, remote='S4/main/src/nodes.txt')
+    c.put(node_ips_f, remote='S4/main/src/nodes.txt')
     if i < len(node_ips) - 1: # worker nodes
         # c.run(f"cd S4 && source ./venv/bin/activate && cd worker && flask run --host=0.0.0.0 -p {port}", asynchronous=True)
         c.run(f"tmux new-session -d \"cd S4 && source ./venv/bin/activate && cd worker && flask run --host=0.0.0.0 -p {port}\"", asynchronous=True)
@@ -116,7 +116,6 @@ for idx, url in enumerate(node_urls):
         print(f"Worker node: {url}")
     else:
         print(f"Main node: {url}")
-# TODO: check changes in code, then push to git and test
 
 # elb = boto3.client('elbv2')
 

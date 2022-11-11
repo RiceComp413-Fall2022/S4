@@ -113,24 +113,27 @@ FindObject404 = api.model(
 )
 
 TIMEOUT = 10
-FILE_PATH = "../tests"
-# FILE_PATH = os.getenv("FILE_PATH")
+PORT_NUM = 8080
+# FILE_PATH = os.getenv("PORT_NUM")
 
 key_to_filename = {}  # string to string
 key_to_nodes = {}  # string to list[string]
 node_to_keys = defaultdict(set)  # string to set[string]
+
 processed_down_nodes = set()
+
 hostname = socket.gethostname()
 ipAddr = socket.gethostbyname(hostname)
-main_url = f"http://{ipAddr}:5000/"
+main_url = f"http://{ipAddr}:{PORT_NUM}/"
+# main_url = "http://127.0.0.1:5000/"
 
 healthy_workers = []
 
-ALL_WORKERS = [
-    # "http://168.5.50.116:5001/",
-    # "http://10.98.77.126:5001/",
-    # "http://10.98.77.126:5002/",
-]
+
+with open("nodes.txt") as f:
+    url_list = f.readlines()
+ALL_WORKERS = [url.strip() for url in url_list]
+print(ALL_WORKERS)
 
 # Repeated timer
 class RepeatedTimer(object):
@@ -233,7 +236,7 @@ def healthCheck():
     # Get the healthy and not healthy workers
     for worker in ALL_WORKERS:
         try:
-            r = requests.get(url=worker + "/HealthCheck", timeout=TIMEOUT)
+            r = requests.get(url=worker + "/HealthCheck")
             if r.status_code == 200:
                 healthyWorkers.append(worker)
             else:  # server is down/overloaded
@@ -295,7 +298,6 @@ def healthCheck():
                             break
                     except:
                         pass
-
 
 # ----------------------------------- DoubleWorkers -----------------------------------
 @ns.route("/DoubleWorkers")
@@ -394,6 +396,13 @@ class DoubleWorkers(Resource):
                 except:
                     pass
 
+        return {"msg": "Success"}, 200
+
+
+            
+@ns.route("/HealthCheck")
+class HealthCheck(Resource):
+    def get(self):
         return {"msg": "Success"}, 200
 
 

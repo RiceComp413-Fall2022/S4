@@ -114,56 +114,61 @@ for idx, url in enumerate(node_urls):
     else:
         print(f"Main node: {url}")
 
-# elb = boto3.client('elbv2')
+# TODO: move main node to beginning of node.txt file
+# TODO: remove main url from ALL_WORKERS in main
+# TODO: put ARN into a text file
+# TODO: test load balancer
 
-# target_group = elb.create_target_group(
-#     Name='cachecow-nodes',
-#     Protocol='TCP',
-#     Port=7070,
-#     TargetType='instance',
-#     VpcId='vpc-0b0b55be375992f99'
-# )
+elb = boto3.client('elbv2')
 
-# target_group_arn = target_group['TargetGroups'][0]['TargetGroupArn']
+target_group = elb.create_target_group(
+    Name='s4-nodes',
+    Protocol='TCP',
+    Port=port,
+    TargetType='instance',
+    VpcId='vpc-0070a81dce19eb286'
+)
 
-# targets = elb.register_targets(
-#     TargetGroupArn=target_group_arn,
-#     Targets=[{'Id': x.id, 'Port': 7070} for x in instances]
-# )
+target_group_arn = target_group['TargetGroups'][0]['TargetGroupArn']
 
-# balancer = elb.create_load_balancer(
-#     Name='cachecow-balancer',
-#     Subnets=[
-#         'subnet-0f380160653779f61'
-#     ],
-#     Scheme='internet-facing',
-#     Type='network',
-#     IpAddressType='ipv4'
-# )
+targets = elb.register_targets(
+    TargetGroupArn=target_group_arn,
+    Targets=[{'Id': x.id, 'Port': port} for idx, x in enumerate(instances) if idx < len(instances) - 1]
+)
 
-# balancer_arn = balancer['LoadBalancers'][0]['LoadBalancerArn']
+balancer = elb.create_load_balancer(
+    Name='cachecow-balancer',
+    Subnets=[
+        'subnet-0c4bb0594331a4e19'
+    ],
+    Scheme='internet-facing',
+    Type='network',
+    IpAddressType='ipv4'
+)
 
-# listener = elb.create_listener(
-#     LoadBalancerArn=balancer_arn,
-#     Protocol='TCP',
-#     Port=7070,
-#     DefaultActions=[
-#         {
-#             'Type': 'forward',
-#             'TargetGroupArn': target_group_arn,
-#             'ForwardConfig': {
-#                 'TargetGroups': [
-#                     {
-#                         'TargetGroupArn': target_group_arn
-#                     },
-#                 ]
-#             }
-#         },
-#     ],
-# )
+balancer_arn = balancer['LoadBalancers'][0]['LoadBalancerArn']
 
-# elb.get_waiter('load_balancer_available').wait(LoadBalancerArns=[balancer_arn])
+listener = elb.create_listener(
+    LoadBalancerArn=balancer_arn,
+    Protocol='TCP',
+    Port=port,
+    DefaultActions=[
+        {
+            'Type': 'forward',
+            'TargetGroupArn': target_group_arn,
+            'ForwardConfig': {
+                'TargetGroups': [
+                    {
+                        'TargetGroupArn': target_group_arn
+                    },
+                ]
+            }
+        },
+    ],
+)
 
-# elb_dns = elb.describe_load_balancers(LoadBalancerArns=[balancer_arn])['LoadBalancers'][0]['DNSName']
+elb.get_waiter('load_balancer_available').wait(LoadBalancerArns=[balancer_arn])
 
-# wait_node(elb_dns)
+elb_dns = elb.describe_load_balancers(LoadBalancerArns=[balancer_arn])['LoadBalancers'][0]['DNSName']
+
+wait_node(elb_dns)

@@ -86,10 +86,8 @@ for i, node in enumerate(node_ips):
     c.run("cd S4 && git pull && source ./venv/bin/activate && pip install -r requirements.txt")
     c.put(node_ips_f, remote='S4/main/src/nodes.txt')
     if i < len(node_ips) - 1: # worker nodes
-        # c.run(f"cd S4 && source ./venv/bin/activate && cd worker && flask run --host=0.0.0.0 -p {port}", asynchronous=True)
         c.run(f"tmux new-session -d \"cd S4 && source ./venv/bin/activate && cd worker && flask run --host=0.0.0.0 -p {port}\"", asynchronous=True)
     else: # main node
-        # c.run(f"cd S4 && source ./venv/bin/activate && cd main/src && flask run --host=0.0.0.0 -p {port}", asynchronous=True)
         c.run(f"tmux new-session -d \"cd S4 && source ./venv/bin/activate && cd main/src && flask run --host=0.0.0.0 -p {port}\"", asynchronous=True)
         
     c.close()
@@ -97,7 +95,6 @@ for i, node in enumerate(node_ips):
 def test_node(node):
     success = True
     try:
-        # TODO: change to health check
         requests.get(f"http://{node}:{port}/HealthCheck", timeout=5)
     except:
         success = False

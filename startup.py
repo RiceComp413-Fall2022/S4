@@ -16,6 +16,20 @@ if num_nodes < 2:
     exit()
 ec2 = boto3.resource('ec2')
 
+def get_vpc_and_subnet(ec2, zone):
+    all_vpcs = list(ec2.vpcs.all())
+
+    if len(all_vpcs) == 0:
+        return None, None
+
+    for subnet in all_vpcs[0].subnets.all():
+        if (subnet.availability_zone == zone):
+            return all_vpcs[0].id, subnet.id
+
+    return all_vpcs[0].id, None
+
+vpc_id, subnet_id = get_vpc_and_subnet(ec2, 'us-east-1b')
+
 instances = ec2.create_instances(
     ImageId='ami-03a56b7b6b25caf7b', # Custom AMI with dependencies preinstalled
     InstanceType='t2.micro', # 2 vCPU, 4 GiB memory
@@ -57,8 +71,12 @@ for instance in instances:
     node_ips.append(instance.public_ip_address)
 
 node_urls = ["http://" + x + f":{port}/" for x in node_ips]
-node_ips_f = io.StringIO("\n".join(node_urls))
 print(node_urls)
+worker_node_urls = node_urls[:-1]
+main_node_url = node_urls[-1]
+node_ips_f = io.StringIO("\n".join(worker_node_urls))
+
+
 def connect_retry(host, user, key):
     while True:
         try:
@@ -126,7 +144,7 @@ target_group = elb.create_target_group(
     Protocol='TCP',
     Port=port,
     TargetType='instance',
-    VpcId='vpc-0070a81dce19eb286'
+    VpcId=vpc_id
 )
 
 target_group_arn = target_group['TargetGroups'][0]['TargetGroupArn']
@@ -137,9 +155,9 @@ targets = elb.register_targets(
 )
 
 balancer = elb.create_load_balancer(
-    Name='cachecow-balancer',
+    Name='s4-balancer',
     Subnets=[
-        'subnet-0c4bb0594331a4e19'
+        subnet_id
     ],
     Scheme='internet-facing',
     Type='network',
@@ -169,6 +187,23 @@ listener = elb.create_listener(
 
 elb.get_waiter('load_balancer_available').wait(LoadBalancerArns=[balancer_arn])
 
-elb_dns = elb.describe_load_balancers(LoadBalancerArns=[balancer_arn])['LoadBalancers'][0]['DNSName']
+def test_lb(node):
+    success = True
+    try:
+        requests.get(f"http://{node}:{port}", timeout=5)
+    except:
+        success = False
+    return success
 
-wait_node(elb_dns)
+def wait_lb(node):
+    print(f"Waiting for {node}")
+    while not test_lb(node):
+        time.sleep(5)
+        
+elb_dns = elb.describe_load_balancers(LoadBalancerArns=[balancer_arn])['LoadBalancers'][0]['DNSName']
+wait_lb(elb_dns)
+
+with open("nodes.txt", "w") as nodes_f:
+    nodes_f.write("\n".join(worker_node_urls))
+with open("scale_info.txt", "w") as scale_f:
+    scale_f.write(f"{target_group_arn}\n{main_node_url}")

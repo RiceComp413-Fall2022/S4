@@ -13,14 +13,31 @@ from fabric import Connection # pip install fabric
 port = 8080
 
 with open("nodes.txt") as f:
+    worker_nodes = f.readlines()
+
+with open("scale_info.txt") as f:
     sys_info = f.readlines()
+
 target_group_arn = sys_info[0]
 main_url = sys_info[1]
-worker_nodes = sys_info[2:]
 
 num_nodes = len(worker_nodes)
 
 ec2 = boto3.resource('ec2')
+
+def get_vpc_and_subnet(ec2, zone):
+    all_vpcs = list(ec2.vpcs.all())
+
+    if len(all_vpcs) == 0:
+        return None, None
+
+    for subnet in all_vpcs[0].subnets.all():
+        if (subnet.availability_zone == zone):
+            return all_vpcs[0].id, subnet.id
+
+    return all_vpcs[0].id, None
+
+vpc_id, subnet_id = get_vpc_and_subnet(ec2, 'us-east-1b')
 
 instances = ec2.create_instances(
     ImageId='ami-03a56b7b6b25caf7b', # Custom AMI with dependencies preinstalled
@@ -120,15 +137,24 @@ for idx, url in enumerate(node_urls):
 
 elb = boto3.client('elbv2')
 
+# target_group = elb.create_target_group(
+#     Name='s4-nodes',
+#     Protocol='TCP',
+#     Port=port,
+#     TargetType='instance',
+#     VpcId=vpc_id
+# )
+
+
 targets = elb.register_targets(
     TargetGroupArn=target_group_arn,
     Targets=[{'Id': x.id, 'Port': port} for x in instances]
 )
 
 # balancer = elb.create_load_balancer(
-#     Name='cachecow-balancer',
+#     Name='s4-balancer',
 #     Subnets=[
-#         'subnet-0c4bb0594331a4e19'
+#         subnet_id
 #     ],
 #     Scheme='internet-facing',
 #     Type='network',
@@ -158,6 +184,18 @@ targets = elb.register_targets(
 
 # elb.get_waiter('load_balancer_available').wait(LoadBalancerArns=[balancer_arn])
 
-# elb_dns = elb.describe_load_balancers(LoadBalancerArns=[balancer_arn])['LoadBalancers'][0]['DNSName']
+# def test_lb(node):
+#     success = True
+#     try:
+#         requests.get(f"http://{node}:{port}", timeout=5)
+#     except:
+#         success = False
+#     return success
 
-# wait_node(elb_dns)
+# def wait_lb(node):
+#     print(f"Waiting for {node}")
+#     while not test_lb(node):
+#         time.sleep(5)
+        
+# elb_dns = elb.describe_load_balancers(LoadBalancerArns=[balancer_arn])['LoadBalancers'][0]['DNSName']
+# wait_lb(elb_dns)

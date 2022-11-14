@@ -1,4 +1,5 @@
 import sys
+import json
 import io
 import time
 import requests # pip install requests
@@ -10,10 +11,15 @@ from fabric import Connection # pip install fabric
 # TODO: automatic teardown
 
 port = 8080
-num_nodes = int(sys.argv[1])
-if num_nodes < 2:
-    print("At least 2 nodes are required for S4.")
-    exit()
+
+with open("nodes.txt") as f:
+    sys_info = f.readlines()
+target_group_arn = sys_info[0]
+main_url = sys_info[1]
+worker_nodes = sys_info[2:]
+
+num_nodes = len(worker_nodes)
+
 ec2 = boto3.resource('ec2')
 
 instances = ec2.create_instances(
@@ -104,36 +110,25 @@ def wait_node(node):
 for node in node_ips:
     wait_node(node)
 
-r = requests.post()
-
+r = requests.post(main_url + "DoubleWorkers", data={"nodes" : json.dumps(node_ips)})
+if r.status_code != 200:
+    print(f"Error {r.status_code}: " + r.content)
+    exit()
 
 for idx, url in enumerate(node_urls):
-    if idx < len(node_urls) - 1:
-        print(f"Worker node: {url}")
-    else:
-        print(f"Main node: {url}")
+    print(f"New Worker node: {url}")
 
-# elb = boto3.client('elbv2')
+elb = boto3.client('elbv2')
 
-# target_group = elb.create_target_group(
-#     Name='cachecow-nodes',
-#     Protocol='TCP',
-#     Port=7070,
-#     TargetType='instance',
-#     VpcId='vpc-0b0b55be375992f99'
-# )
-
-# target_group_arn = target_group['TargetGroups'][0]['TargetGroupArn']
-
-# targets = elb.register_targets(
-#     TargetGroupArn=target_group_arn,
-#     Targets=[{'Id': x.id, 'Port': 7070} for x in instances]
-# )
+targets = elb.register_targets(
+    TargetGroupArn=target_group_arn,
+    Targets=[{'Id': x.id, 'Port': port} for x in instances]
+)
 
 # balancer = elb.create_load_balancer(
 #     Name='cachecow-balancer',
 #     Subnets=[
-#         'subnet-0f380160653779f61'
+#         'subnet-0c4bb0594331a4e19'
 #     ],
 #     Scheme='internet-facing',
 #     Type='network',
@@ -145,7 +140,7 @@ for idx, url in enumerate(node_urls):
 # listener = elb.create_listener(
 #     LoadBalancerArn=balancer_arn,
 #     Protocol='TCP',
-#     Port=7070,
+#     Port=port,
 #     DefaultActions=[
 #         {
 #             'Type': 'forward',

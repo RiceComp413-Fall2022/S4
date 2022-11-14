@@ -18,8 +18,8 @@ with open("nodes.txt") as f:
 with open("scale_info.txt") as f:
     sys_info = f.readlines()
 
-target_group_arn = sys_info[0]
-main_url = sys_info[1]
+target_group_arn = sys_info[0][:-1]
+main_url = sys_info[1][:-1]
 
 num_nodes = len(worker_nodes)
 
@@ -137,65 +137,7 @@ for idx, url in enumerate(node_urls):
 
 elb = boto3.client('elbv2')
 
-# target_group = elb.create_target_group(
-#     Name='s4-nodes',
-#     Protocol='TCP',
-#     Port=port,
-#     TargetType='instance',
-#     VpcId=vpc_id
-# )
-
-
 targets = elb.register_targets(
     TargetGroupArn=target_group_arn,
     Targets=[{'Id': x.id, 'Port': port} for x in instances]
 )
-
-# balancer = elb.create_load_balancer(
-#     Name='s4-balancer',
-#     Subnets=[
-#         subnet_id
-#     ],
-#     Scheme='internet-facing',
-#     Type='network',
-#     IpAddressType='ipv4'
-# )
-
-# balancer_arn = balancer['LoadBalancers'][0]['LoadBalancerArn']
-
-# listener = elb.create_listener(
-#     LoadBalancerArn=balancer_arn,
-#     Protocol='TCP',
-#     Port=port,
-#     DefaultActions=[
-#         {
-#             'Type': 'forward',
-#             'TargetGroupArn': target_group_arn,
-#             'ForwardConfig': {
-#                 'TargetGroups': [
-#                     {
-#                         'TargetGroupArn': target_group_arn
-#                     },
-#                 ]
-#             }
-#         },
-#     ],
-# )
-
-# elb.get_waiter('load_balancer_available').wait(LoadBalancerArns=[balancer_arn])
-
-# def test_lb(node):
-#     success = True
-#     try:
-#         requests.get(f"http://{node}:{port}", timeout=5)
-#     except:
-#         success = False
-#     return success
-
-# def wait_lb(node):
-#     print(f"Waiting for {node}")
-#     while not test_lb(node):
-#         time.sleep(5)
-        
-# elb_dns = elb.describe_load_balancers(LoadBalancerArns=[balancer_arn])['LoadBalancers'][0]['DNSName']
-# wait_lb(elb_dns)

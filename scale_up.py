@@ -127,9 +127,9 @@ def wait_node(node):
 for node in node_ips:
     wait_node(node)
 
-r = requests.post(main_url + "DoubleWorkers", data={"nodes" : json.dumps(node_ips)})
+r = requests.post(main_url + "/ScaleUp", data={"nodes" : json.dumps(node_ips)})
 if r.status_code != 200:
-    print(f"Error {r.status_code}: " + r.content)
+    print(f"Error {r.status_code}")
     exit()
 
 for idx, url in enumerate(node_urls):

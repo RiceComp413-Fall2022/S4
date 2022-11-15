@@ -60,9 +60,13 @@ ScaleDown200 = api.model(
     {
         "msg": fields.String(
             required=True,
-            description="Doubles the number of nodes in the system",
+            description="Halves the number of nodes in the system",
             example="Success",
         ),
+        "nodes" :fields.String(
+            description="List of nodes that were cleared.",
+            example='{"http://127.0.0.1:5001/", "http://127.0.0.1:5002/", "http://127.0.0.1:5003/"}',
+        )
     },
 )
 
@@ -71,7 +75,7 @@ ScaleDown400 = api.model(
     {
         "msg": fields.String(
             required=True,
-            description="Doubles the number of nodes in the system",
+            description="Halves the number of nodes in the system",
             example="Needs X healthy nodes",
         ),
     },
@@ -151,7 +155,7 @@ main_url = f"http://{ipAddr}:{PORT_NUM}/"
 
 healthy_workers = []
 
-
+# ALL_WORKERS = ["http://127.0.0.1:5001/", "http://127.0.0.1:5002/", "http://127.0.0.1:5003/", "http://127.0.0.1:5004/", "http://127.0.0.1:5005/", "http://127.0.0.1:5006/"]
 with open("nodes.txt") as f:
     url_list = f.readlines()
 ALL_WORKERS = [url.strip() for url in url_list]
@@ -344,7 +348,7 @@ class ScaleDown(Resource):
         if not res:
             return {"msg": "Error redistributing all files"}, 400
 
-        return {"msg": f"Successfully cleared nodes: {workers_to_remove}"}, 200
+        return {"msg": f"Successfully cleared nodes", "nodes": f"{json.dumps(workers_to_remove)}"}, 200
 
 # ----------------------------------- DoubleWorkers -----------------------------------
 @ns.route("/ScaleUp")

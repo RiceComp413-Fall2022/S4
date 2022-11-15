@@ -33,8 +33,8 @@ api = Api(
 ns = api.namespace("", description="S4 API Endpoints")
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~ API Model for example header/body and the response ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-DoubleNodes200 = api.model(
-    "DoubleNodes Success",
+ScaleUp200 = api.model(
+    "ScaleUp Success",
     {
         "msg": fields.String(
             required=True,
@@ -44,8 +44,30 @@ DoubleNodes200 = api.model(
     },
 )
 
-DoubleNodes400 = api.model(
-    "DoubleNodes Failure",
+ScaleUp400 = api.model(
+    "ScaleUp Failure",
+    {
+        "msg": fields.String(
+            required=True,
+            description="Doubles the number of nodes in the system",
+            example="Needs X healthy nodes",
+        ),
+    },
+)
+
+ScaleDown200 = api.model(
+    "ScaleDown Success",
+    {
+        "msg": fields.String(
+            required=True,
+            description="Doubles the number of nodes in the system",
+            example="Success",
+        ),
+    },
+)
+
+ScaleDown400 = api.model(
+    "ScaleDown Failure",
     {
         "msg": fields.String(
             required=True,
@@ -299,13 +321,38 @@ def healthCheck():
                     except:
                         pass
 
+# ----------------------------------- Scale Down -----------------------------------
+@ns.route("/ScaleDown")
+class ScaleDown(Resource):
+    @ns.doc("ScaleDown")
+    @api.response(200, "Success", model=ScaleDown200)
+    @api.response(400, "Failure", model=ScaleDown400)
+    def post(self):
+        global ALL_WORKERS
+        global node_to_keys
+        global key_to_nodes
+        global key_to_filename
+        global processed_down_nodes
+
+        if len(ALL_WORKERS) <=3:
+            return {"msg": "Must have at least 2 workers running"}, 400
+        
+        workers_to_remove = ALL_WORKERS[(len(ALL_WORKERS)//2):]
+        ALL_WORKERS = ALL_WORKERS[:(len(ALL_WORKERS)//2)]
+        
+        res = redistribute_files()
+        if not res:
+            return {"msg": "Error redistributing all files"}, 400
+
+        return {"msg": f"Successfully cleared nodes: {workers_to_remove}"}, 200
+
 # ----------------------------------- DoubleWorkers -----------------------------------
-@ns.route("/DoubleWorkers")
+@ns.route("/ScaleUp")
 @ns.expect(arr_param)
-class DoubleWorkers(Resource):
-    @ns.doc("DoubleWorkers")
-    @api.response(200, "Success", model=DoubleNodes200)
-    @api.response(400, "Failure", model=DoubleNodes400)
+class ScaleUp(Resource):
+    @ns.doc("ScaleUp")
+    @api.response(200, "Success", model=ScaleUp200)
+    @api.response(400, "Failure", model=ScaleUp400)
     def post(self):
         global ALL_WORKERS
         global node_to_keys
@@ -325,78 +372,85 @@ class DoubleWorkers(Resource):
             return {"msg": f"Needs at least {len(ALL_WORKERS)} healthy nodes"}, 400
         ALL_WORKERS += nodes_to_add
 
-        # Update worker list
-        for idx, worker in enumerate(ALL_WORKERS):
+        redistribute_files()
+
+        return {"msg": "Success"}, 200
+
+def redistribute_files():
+    for idx, worker in enumerate(ALL_WORKERS):
+        try:
+            r = requests.put(
+                url=worker + "_SetWorkers",
+                params={
+                    "workers": json.dumps(ALL_WORKERS),
+                    "workerIndex": idx,
+                    "mainUrl": main_url,
+                },
+                timeout=TIMEOUT,
+            )
+        except:
+            pass
+
+    # Redistribute files
+    redistribute_all = True
+    for key in key_to_nodes:
+        nodes = set(key_to_nodes[key])
+        del key_to_nodes[key]
+        file = None
+        # Get the file
+        for node in nodes:
             try:
-                r = requests.put(
-                    url=worker + "_SetWorkers",
-                    params={
-                        "workers": json.dumps(ALL_WORKERS),
-                        "workerIndex": idx,
-                        "mainUrl": main_url,
-                    },
-                    timeout=TIMEOUT,
+                r = requests.get(
+                    node + "_GetObject",
+                    params={"key": key, "filename": key_to_filename[key]},
+                    stream=True,
                 )
+                if r.status_code == 200:
+                    file = BytesIO(r.content)
+                    break
             except:
                 pass
 
-        # Redistribute files
-        for key in key_to_nodes:
-            nodes = set(key_to_nodes[key])
-            del key_to_nodes[key]
-            file = None
-            # Get the file
-            for node in nodes:
-                try:
-                    r = requests.get(
-                        node + "_GetObject",
-                        params={"key": key, "filename": key_to_filename[key]},
-                        stream=True,
-                    )
-                    if r.status_code == 200:
-                        file = BytesIO(r.content)
-                        break
-                except:
-                    pass
+        # Put the file again
+        if file == None:
+            continue
+        file.seek(0)
+        f = file.read()
+        put = False
+        for node in ALL_WORKERS:
+            try:
+                r = requests.put(
+                    node + "PutObject",
+                    params={"key": key, "filename": key_to_filename[key]},
+                    files={"file": f},
+                )
+                if r.status_code == 201:
+                    print(f"put on node {node}")
+                    put = True
+                    break
+            except:
+                pass
 
-            # Put the file again
-            if file == None:
+        if not put:
+            key_to_nodes[key] = nodes
+            redistribute_all = False
+            continue
+
+        # Delete the file from old nodes
+        for node in nodes:
+            if node in key_to_nodes[key]:
                 continue
-            file.seek(0)
-            f = file.read()
-            put = False
-            for node in ALL_WORKERS:
-                try:
-                    r = requests.put(
-                        node + "PutObject",
-                        params={"key": key, "filename": key_to_filename[key]},
-                        files={"file": f},
-                    )
-                    if r.status_code == 201:
-                        put = True
-                        break
-                except:
-                    pass
-
-            if not put:
-                key_to_nodes[key] = nodes
-                continue
-
-            # Delete the file from old nodes
-            for node in nodes:
-                if node in key_to_nodes[key]:
-                    continue
-                try:
-                    r = requests.put(
-                        url=node + "/_DeleteObject",
-                        params={"key": key},
-                        timeout=TIMEOUT,
-                    )
-                    node_to_keys[node].remove(key)
-                except:
-                    pass
-
-        return {"msg": "Success"}, 200
+            try:
+                r = requests.put(
+                    url=node + "/_DeleteObject",
+                    params={"key": key},
+                    timeout=TIMEOUT,
+                )
+                node_to_keys[node].remove(key)
+            except:
+                pass
+    return redistribute_all
+        
 
 
             

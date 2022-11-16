@@ -55,18 +55,17 @@ elb = boto3.client('elbv2')
 instance_ids = []
 for rmv_node in removed_nodes:
     instance_ids.append(worker_nodes[rmv_node])
-    worker_nodes.remove(rmv_node)
+    del worker_nodes[rmv_node]
 
+#remove from load balancer
 targets = elb.deregister_targets(
     TargetGroupArn=target_group_arn,
     Targets=[{'Id': x, 'Port': port} for x in instance_ids]
 )
 
 #terminate instances
-ec2.terminate_instances(
-    InstanceIds=instance_ids
-)
+ec2.instances.filter(InstanceIds=instance_ids).terminate()
 
 #remove terminated nodes from nodes.txt
 with open("nodes.txt", 'w') as nodes_f:
-    nodes_f.write("\n".join(worker_nodes))
+    nodes_f.write(json.dumps(worker_nodes))

@@ -13,7 +13,7 @@ from fabric import Connection # pip install fabric
 port = 8080
 
 with open("nodes.txt") as f:
-    worker_nodes = f.readlines()
+    worker_nodes = json.loads(f.read())
 
 with open("scale_info.txt") as f:
     sys_info = f.readlines()
@@ -126,8 +126,8 @@ def wait_node(node):
 
 for node in node_ips:
     wait_node(node)
-
-r = requests.post(main_url + "/ScaleUp", data={"nodes" : json.dumps(node_ips)})
+    
+r = requests.post(main_url + "/ScaleUp", data={"nodes" : json.dumps(node_urls)})
 if r.status_code != 200:
     print(f"Error {r.status_code}")
     exit()
@@ -141,3 +141,10 @@ targets = elb.register_targets(
     TargetGroupArn=target_group_arn,
     Targets=[{'Id': x.id, 'Port': port} for x in instances]
 )
+
+for i in range(len(instances)):
+    instance = instances[i]
+    worker_nodes["http://" + instance.public_ip_address + f":{port}/"] = instance.id
+
+with open("nodes.txt", "w") as nodes_f:
+    nodes_f.write(json.dumps(worker_nodes))

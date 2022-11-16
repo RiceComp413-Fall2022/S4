@@ -3,6 +3,7 @@ import io
 import time
 import requests # pip install requests
 import boto3 # pip install boto3[crt]
+import json
 
 from fabric import Connection # pip install fabric
 
@@ -65,10 +66,14 @@ instances = ec2.create_instances(
 
 #The last ip in node_ips will be the main node, the rest will be workers
 node_ips = []
-for instance in instances:
+node_url_to_instance_id = {}
+for i in range(len(instances)):
+    instance = instances[i]
     instance.wait_until_running()
     instance.load()
     node_ips.append(instance.public_ip_address)
+    if i < len(instances) - 1: 
+        node_url_to_instance_id["http://" + instance.public_ip_address + f":{port}/"] = instance.id
 
 node_urls = ["http://" + x + f":{port}/" for x in node_ips]
 print(node_urls)
@@ -204,6 +209,6 @@ elb_dns = elb.describe_load_balancers(LoadBalancerArns=[balancer_arn])['LoadBala
 wait_lb(elb_dns)
 
 with open("nodes.txt", "w") as nodes_f:
-    nodes_f.write("\n".join(worker_node_urls))
+    nodes_f.write(json.dumps(node_url_to_instance_id))
 with open("scale_info.txt", "w") as scale_f:
     scale_f.write(f"{target_group_arn}\n{main_node_url}")

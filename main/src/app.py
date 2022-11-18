@@ -330,11 +330,13 @@ def healthCheck():
 
                         if r.status_code == 200:
                             node_to_keys[node_url].add(key)
-                            key_to_nodes[key].add(node_url)
+                            if node_url not in key_to_nodes[key]:
+                                key_to_nodes[key].add(node_url)
                             break
                     except:
                         pass
-            key_to_nodes[key].remove(downNode)
+            if downNode in key_to_nodes[key]:
+                key_to_nodes[key].remove(downNode)
 
         node_to_keys[downNode].clear()
 

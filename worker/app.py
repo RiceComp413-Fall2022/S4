@@ -5,7 +5,7 @@ import hashlib
 from tracemalloc import start
 import requests
 from io import BytesIO
-from security import internal_required, api_required
+from security import internal_required, api_required, INTERNAL_HEADERS
 
 from flask import Flask, request, flash, send_file, jsonify
 from flask_restx import Api, Resource, fields
@@ -198,7 +198,11 @@ class get_object(Resource):
             return {"msg": "Key not specified"}, 400
 
         # check if key exists
-        r = requests.get(url=main_url + "FindObject", params={"key": key})
+        r = requests.get(
+            url=main_url + "FindObject",
+            params={"key": key},
+            headers=INTERNAL_HEADERS,
+        )
 
         if r.status_code == 404:
             return {"msg": "Key does not exist"}, 404
@@ -225,6 +229,7 @@ class get_object(Resource):
                 url_array[curr_replica] + "_GetObject",
                 params={"key": key, "filename": filename},
                 stream=True,
+                headers=INTERNAL_HEADERS,
             )
             if r.status_code == 200:
                 return send_file(
@@ -239,6 +244,7 @@ class get_object(Resource):
                 r = requests.get(
                     url_array[curr_replica] + "_GetObject",
                     params={"key": key, "filename": filename},
+                    headers=INTERNAL_HEADERS,
                 )
                 if r.status_code == 200:
                     return r.content, 200
@@ -282,7 +288,11 @@ class put_object(Resource):
             return {"msg": "Empty filename"}, 400
 
         # check if key is unique
-        r = requests.get(url=main_url + "/FindObject", params={"key": key})
+        r = requests.get(
+            url=main_url + "/FindObject",
+            params={"key": key},
+            headers=INTERNAL_HEADERS,
+        )
 
         if r.status_code == 200:
             return {"msg": "Key not unique"}, 400
@@ -347,7 +357,10 @@ class list_objects(Resource):
     @api_required
     def get(self):
         # Get key to file name mapping from main node
-        r = requests.get(url=main_url + "ListObjects")
+        r = requests.get(
+            url=main_url + "ListObjects",
+            headers=INTERNAL_HEADERS,
+        )
         if r.status_code == 200:
             response = r.json()
             keys_to_filenames = json.loads(response["objects"])

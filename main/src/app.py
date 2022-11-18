@@ -20,7 +20,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.utils import secure_filename
 from werkzeug.datastructures import FileStorage
 
-from security import internal_required, admin_required, INTERNAL_KEY
+from security import internal_required, admin_required, INTERNAL_HEADERS
 
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app)
@@ -159,8 +159,6 @@ ipAddr = socket.gethostbyname(hostname)
 main_url = f"http://{ipAddr}:{PORT_NUM}/"
 # main_url = "http://127.0.0.1:5000/"
 
-internal_headers = {"X-Api-Key": INTERNAL_KEY}
-
 healthy_workers = []
 
 # ALL_WORKERS = ["http://127.0.0.1:5001/", "http://127.0.0.1:5002/", "http://127.0.0.1:5003/", "http://127.0.0.1:5004/", "http://127.0.0.1:5005/", "http://127.0.0.1:5006/"]
@@ -219,7 +217,7 @@ def start():
     for worker in ALL_WORKERS:
         try:
             r = requests.get(
-                url=worker + "_JoinNetwork", timeout=TIMEOUT, headers=internal_headers
+                url=worker + "_JoinNetwork", timeout=TIMEOUT, headers=INTERNAL_HEADERS
             )
             if r.status_code == 200:
                 healthy_workers.append(worker)
@@ -236,7 +234,7 @@ def start():
                     "mainUrl": main_url,
                 },
                 timeout=TIMEOUT,
-                headers=internal_headers,
+                headers=INTERNAL_HEADERS,
             )
         except:
             pass
@@ -273,7 +271,7 @@ def healthCheck():
     # Get the healthy and not healthy workers
     for worker in ALL_WORKERS:
         try:
-            r = requests.get(url=worker + "/HealthCheck", headers=internal_headers)
+            r = requests.get(url=worker + "/HealthCheck", headers=INTERNAL_HEADERS)
             if r.status_code == 200:
                 healthyWorkers.append(worker)
             else:  # server is down/overloaded
@@ -326,7 +324,7 @@ def healthCheck():
                             requests.put(
                                 contains_url + "/_ForwardObject",
                                 params={"key": key, "forwardingToNode": node_url},
-                                headers=internal_headers,
+                                headers=INTERNAL_HEADERS,
                             )
                         )
 
@@ -389,7 +387,7 @@ class ScaleUp(Resource):
                 r = requests.get(
                     url=worker + "_JoinNetwork",
                     timeout=TIMEOUT,
-                    headers=internal_headers,
+                    headers=INTERNAL_HEADERS,
                 )
                 if r.status_code == 200:
                     nodes_to_add.append(worker)
@@ -415,7 +413,7 @@ def redistribute_files():
                     "mainUrl": main_url,
                 },
                 timeout=TIMEOUT,
-                headers=internal_headers,
+                headers=INTERNAL_HEADERS,
             )
         except:
             pass
@@ -433,7 +431,7 @@ def redistribute_files():
                     node + "_GetObject",
                     params={"key": key, "filename": key_to_filename[key]},
                     stream=True,
-                    headers=internal_headers,
+                    headers=INTERNAL_HEADERS,
                 )
                 if r.status_code == 200:
                     file = BytesIO(r.content)
@@ -453,7 +451,7 @@ def redistribute_files():
                     node + "PutObject",
                     params={"key": key, "filename": key_to_filename[key]},
                     files={"file": f},
-                    headers=internal_headers,
+                    headers=INTERNAL_HEADERS,
                 )
                 if r.status_code == 201:
                     print(f"put on node {node}")
@@ -476,7 +474,7 @@ def redistribute_files():
                     url=node + "/_DeleteObject",
                     params={"key": key},
                     timeout=TIMEOUT,
-                    headers=internal_headers,
+                    headers=INTERNAL_HEADERS,
                 )
                 node_to_keys[node].remove(key)
             except:
@@ -554,7 +552,7 @@ class deleteObject(Resource):
                 r = requests.get(
                     url=worker + "/HealthCheck",
                     timeout=TIMEOUT,
-                    headers=internal_headers,
+                    headers=INTERNAL_HEADERS,
                 )
 
                 if r.status_code == 200:  # success
@@ -576,7 +574,7 @@ class deleteObject(Resource):
                         url=node + "/_DeleteObject",
                         params={"key": key},
                         timeout=TIMEOUT,
-                        headers=internal_headers,
+                        headers=INTERNAL_HEADERS,
                     )
 
                     if r.status_code != 200:

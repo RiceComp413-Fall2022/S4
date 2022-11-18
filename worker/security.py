@@ -4,6 +4,7 @@ from flask import request
 ADMIN_KEY = "dapperdan"
 INTERNAL_KEY = "gnohzoaboudibahsaminoacnagijizey"
 API_KEY = "SSSS"
+INTERNAL_HEADERS = {"X-Api-Key": INTERNAL_KEY}
 
 
 def api_required(func):

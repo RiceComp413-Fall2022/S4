@@ -498,6 +498,16 @@ class listObjects(Resource):
 
         return {"msg": "Success", "objects": json.dumps(key_to_filename)}, 200
 
+# ----------------------------------- ListNodeToKeys -----------------------------------
+@ns.route("/ListNodeToKeys")
+class listNodeToKeys(Resource):
+    @ns.doc("ListNodeToKeys")
+    # @api.response(200, "Success", model=ListObjects200)
+    def get(self):
+        global node_to_keys
+
+        return {"msg": "Success", "node_to_keys": json.dumps(node_to_keys)}, 200
+
 
 # ----------------------------------- DeleteObject -----------------------------------
 @ns.route("/DeleteObject")

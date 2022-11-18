@@ -5,6 +5,7 @@ import hashlib
 from tracemalloc import start
 import requests
 from io import BytesIO
+import shutil
 
 from flask import Flask, request, flash, send_file, jsonify
 from flask_restx import Api, Resource, fields
@@ -375,6 +376,14 @@ class delete_object(Resource):
             # TODO: better way to do this?
             return {"msg": r.json()}, r.status_code
 
+# ----------------------------------- DiskUsage -----------------------------------
+@ns.route("/DiskUsage")
+class disk_usage(Resource):
+    @ns.doc("DiskUsage")
+    def get(self):
+        path = "./storage"
+        stats = shutil.disk_usage(path)
+        return {"msg": "Success", "disk_usage": stats._asdict()}
 
 # ----------------------------------- Internal Endpoints -----------------------------------
 

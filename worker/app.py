@@ -5,6 +5,7 @@ import hashlib
 from tracemalloc import start
 import requests
 from io import BytesIO
+from security import internal_required, api_required
 
 from flask import Flask, request, flash, send_file, jsonify
 from flask_restx import Api, Resource, fields
@@ -15,15 +16,19 @@ from werkzeug.datastructures import FileStorage
 
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app)
+
+authorizations = {"apikey": {"type": "apiKey", "in": "header", "name": "X-API-KEY"}}
+
 api = Api(
     app,
     version="0.0.2",
     title="S4 Worker Node",
     description="Super Simple Storage System",
+    authorizations=authorizations,
+    security="apikey",
 )
 
 ns = api.namespace("", description="S4 API Endpoints")
-
 # Fields
 node_number = -1
 url_array = []
@@ -169,6 +174,7 @@ file_param.add_argument("file", location="files", type=FileStorage)
 @ns.route("/HealthCheck")
 class status_update(Resource):
     @ns.doc("HealthCheck")
+    @internal_required
     def get(self):
         return {"msg": f"Node {node_number} is alive."}, 200
 
@@ -181,6 +187,7 @@ class get_object(Resource):
     @api.response(200, "Success", model=GetObject200)
     @api.response(400, "Error: Bad Request", model=GetObject400)
     @api.response(404, "Error: Not Found", model=GetObject404)
+    @api_required
     def get(self):
 
         # get the key from the request parameters
@@ -250,6 +257,7 @@ class put_object(Resource):
     @api.response(201, "Object successfully saved", model=PutObject201)
     @api.response(400, "Error: Bad Request", model=PutObject400)
     @api.response(404, "Error: Not Found", model=PutObject404)
+    @api_required
     def put(self):
 
         # get the key from the request parameters
@@ -336,6 +344,7 @@ class put_object(Resource):
 class list_objects(Resource):
     @ns.doc("ListObjects")
     @api.response(200, "Success", model=ListObjects200)
+    @api_required
     def get(self):
         # Get key to file name mapping from main node
         r = requests.get(url=main_url + "ListObjects")
@@ -360,6 +369,7 @@ class delete_object(Resource):
     @api.response(200, "Success", model=DeleteObject200)
     @api.response(400, "Error: Bad Request", model=DeleteObject400)
     @api.response(404, "Error: Not Found", model=DeleteObject404)
+    @api_required
     def put(self):
         # get the key from the request parameters
         args = request.args
@@ -387,6 +397,7 @@ class _get_object(Resource):
     @api.response(200, "Success", model=GetObject200)
     @api.response(400, "Error: Bad Request", model=GetObject400)
     @api.response(404, "Error: Not Found", model=GetObject404)
+    @internal_required
     def get(self):
 
         # get the key from the request parameters
@@ -409,6 +420,7 @@ class _put_object(Resource):
     @api.response(201, "Object successfully saved", model=PutObject201)
     @api.response(400, "Error: Bad Request", model=PutObject400)
     @api.response(404, "Error: Not Found", model=PutObject404)
+    @internal_required
     def put(self):
         args = request.args
         key = args.get("key")
@@ -425,6 +437,7 @@ class _put_object(Resource):
 @ns.expect(key_param)
 class _delete_object(Resource):
     @ns.doc("_DeleteObject")
+    @internal_required
     # TODO add api response model
     def put(self):
         args = request.args
@@ -447,6 +460,8 @@ class _delete_object(Resource):
 @ns.expect(key_param)
 @ns.expect(forwarding_to_node_param)
 class _forward_object(Resource):
+    @ns.doc("_ForwardObject")
+    @internal_required
     def put(self):
         args = request.args
         key = args.get("key")
@@ -472,6 +487,7 @@ class _forward_object(Resource):
 class _join_network(Resource):
     @ns.doc("_JoinNetwork")
     # TODO add api response model
+    @internal_required
     def get(self):  # TODO is this get
         return 200
 
@@ -482,6 +498,7 @@ class _join_network(Resource):
 @ns.expect(main_url_param)
 class _set_workers(Resource):
     @ns.doc("_SetWorkers")
+    @internal_required
     # TODO add api response model
     def put(self):
         args = request.args

@@ -288,11 +288,14 @@ class put_object(Resource):
             return {"msg": "Empty filename"}, 400
 
         # check if key is unique
-        r = requests.get(
-            url=main_url + "/FindObject",
-            params={"key": key},
-            headers=INTERNAL_HEADERS,
-        )
+        try:
+            r = requests.get(
+                url=main_url + "/FindObject",
+                params={"key": key},
+                headers=INTERNAL_HEADERS,
+            )
+        except:
+            print(r)
 
         if r.status_code == 200:
             return {"msg": "Key not unique"}, 400
@@ -324,6 +327,7 @@ class put_object(Resource):
                     url_array[curr_replica] + "_PutObject",
                     params={"key": key},
                     files={"file": f},
+                    headers=INTERNAL_HEADERS,
                 )
             except:
                 print("Error while putting file")
@@ -344,6 +348,7 @@ class put_object(Resource):
         r = requests.post(
             main_url + "RecordPutObject",
             data={"key": key, "filename": filename, "nodes": json.dumps(replica_nodes)},
+            headers=INTERNAL_HEADERS,
         )
 
         return {"msg": "File successfully saved"}, 201
@@ -390,7 +395,11 @@ class delete_object(Resource):
         if not key:
             return {"msg": "Key not specified"}, 400
 
-        r = requests.post(main_url + "DeleteObject", params={"key": key})
+        r = requests.post(
+            main_url + "DeleteObject",
+            params={"key": key},
+            headers=INTERNAL_HEADERS,
+        )
 
         if r.status_code == 200:
             return {"msg": "The object was deleted successfully."}, 200
@@ -489,6 +498,7 @@ class _forward_object(Resource):
                 url=forwardingToNode + "_PutObject",
                 params={"key": key},
                 files={"file": file},
+                headers=INTERNAL_HEADERS,
             )
             return r.status_code
 

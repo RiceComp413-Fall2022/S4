@@ -330,10 +330,13 @@ def healthCheck():
 
                         if r.status_code == 200:
                             node_to_keys[node_url].add(key)
-                            key_to_nodes[key].append(node_url)
+                            key_to_nodes[key].add(node_url)
                             break
                     except:
                         pass
+            key_to_nodes[key].remove(downNode)
+
+        node_to_keys[downNode].clear()
 
 
 # ----------------------------------- Scale Down -----------------------------------
@@ -505,7 +508,7 @@ class RecordPutObject(Resource):
         key, filename, nodes = body["key"], body["filename"], json.loads(body["nodes"])
 
         key_to_filename[key] = filename
-        key_to_nodes[key] = nodes
+        key_to_nodes[key] = set(nodes)
 
         for node in nodes:
             node_to_keys[node].add(key)

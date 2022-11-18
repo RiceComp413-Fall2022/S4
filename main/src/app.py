@@ -20,14 +20,20 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.utils import secure_filename
 from werkzeug.datastructures import FileStorage
 
+from security import internal_required, admin_required, api_required
+
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app)
+
+authorizations = {"apikey": {"type": "apiKey", "in": "header", "name": "X-API-KEY"}}
 
 api = Api(
     app,
     version="0.0.2",
     title="S4 Main Node",
     description="Super Simple Storage System Main Node",
+    authorizations=authorizations,
+    security="apikey",
 )
 
 ns = api.namespace("", description="S4 API Endpoints")
@@ -63,10 +69,10 @@ ScaleDown200 = api.model(
             description="Halves the number of nodes in the system",
             example="Success",
         ),
-        "nodes" :fields.String(
+        "nodes": fields.String(
             description="List of nodes that were cleared.",
             example='{"http://127.0.0.1:5001/", "http://127.0.0.1:5002/", "http://127.0.0.1:5003/"}',
-        )
+        ),
     },
 )
 
@@ -325,12 +331,14 @@ def healthCheck():
                     except:
                         pass
 
+
 # ----------------------------------- Scale Down -----------------------------------
 @ns.route("/ScaleDown")
 class ScaleDown(Resource):
     @ns.doc("ScaleDown")
     @api.response(200, "Success", model=ScaleDown200)
     @api.response(400, "Failure", model=ScaleDown400)
+    @admin_required
     def post(self):
         global ALL_WORKERS
         global node_to_keys
@@ -338,17 +346,21 @@ class ScaleDown(Resource):
         global key_to_filename
         global processed_down_nodes
 
-        if len(ALL_WORKERS) <=3:
+        if len(ALL_WORKERS) <= 3:
             return {"msg": "Must have at least 2 workers running"}, 400
-        
-        workers_to_remove = ALL_WORKERS[(len(ALL_WORKERS)//2):]
-        ALL_WORKERS = ALL_WORKERS[:(len(ALL_WORKERS)//2)]
-        
+
+        workers_to_remove = ALL_WORKERS[(len(ALL_WORKERS) // 2) :]
+        ALL_WORKERS = ALL_WORKERS[: (len(ALL_WORKERS) // 2)]
+
         res = redistribute_files()
         if not res:
             return {"msg": "Error redistributing all files"}, 400
 
-        return {"msg": f"Successfully cleared nodes", "nodes": f"{json.dumps(workers_to_remove)}"}, 200
+        return {
+            "msg": f"Successfully cleared nodes",
+            "nodes": f"{json.dumps(workers_to_remove)}",
+        }, 200
+
 
 # ----------------------------------- DoubleWorkers -----------------------------------
 @ns.route("/ScaleUp")
@@ -357,6 +369,7 @@ class ScaleUp(Resource):
     @ns.doc("ScaleUp")
     @api.response(200, "Success", model=ScaleUp200)
     @api.response(400, "Failure", model=ScaleUp400)
+    @admin_required
     def post(self):
         global ALL_WORKERS
         global node_to_keys
@@ -379,6 +392,7 @@ class ScaleUp(Resource):
         redistribute_files()
 
         return {"msg": "Success"}, 200
+
 
 def redistribute_files():
     for idx, worker in enumerate(ALL_WORKERS):
@@ -454,10 +468,8 @@ def redistribute_files():
             except:
                 pass
     return redistribute_all
-        
 
 
-            
 @ns.route("/HealthCheck")
 class HealthCheck(Resource):
     def get(self):
@@ -470,6 +482,7 @@ class HealthCheck(Resource):
 class RecordPutObject(Resource):
     @ns.doc("RecordPutObject")
     @api.response(200, "Success", model=RecordPutObject200)
+    @internal_required
     def post(self):
         global node_to_keys
         global key_to_nodes
@@ -493,7 +506,9 @@ class RecordPutObject(Resource):
 class listObjects(Resource):
     @ns.doc("ListObjects")
     @api.response(200, "Success", model=ListObjects200)
+    @internal_required
     def get(self):
+        print(request.origin)
         global key_to_filename
 
         return {"msg": "Success", "objects": json.dumps(key_to_filename)}, 200
@@ -506,6 +521,7 @@ class deleteObject(Resource):
     @ns.doc("DeleteObject")
     @api.response(200, "Success", model=DeleteObject200)
     @api.response(404, "Error: Not Found", model=DeleteObject404)
+    @internal_required
     def post(self):
         healthyWorkers = []
         args = request.args
@@ -565,6 +581,7 @@ class findObject(Resource):
     @ns.doc("FindObject")
     @api.response(200, "Success", model=FindObject200)
     @api.response(404, "Error: Not Found", model=FindObject404)
+    @internal_required
     def get(self):
         args = request.args
         key = args.get("key")

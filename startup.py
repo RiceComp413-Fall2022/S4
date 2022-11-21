@@ -211,4 +211,4 @@ wait_lb(elb_dns)
 with open("nodes.txt", "w") as nodes_f:
     nodes_f.write(json.dumps(node_url_to_instance_id))
 with open("scale_info.txt", "w") as scale_f:
-    scale_f.write(f"{target_group_arn}\n{main_node_url}")
+    scale_f.write(f"{target_group_arn}\n{main_node_url}\nhttp://{elb_dns}:{port}")

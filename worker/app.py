@@ -500,6 +500,11 @@ class _set_workers(Resource):
         url_array = json.loads(args.get("workers"))
         node_number = int(args.get("workerIndex"))
         main_url = args.get("mainUrl")
+
+        if bool(args.get("testing")) == True:
+            global FILE_PATH
+            FILE_PATH = "../tests/worker_" + str(node_number)
+
         return 200
 
 

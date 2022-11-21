@@ -155,7 +155,7 @@ main_url = f"http://{ipAddr}:{PORT_NUM}/"
 
 healthy_workers = []
 
-# ALL_WORKERS = ["http://127.0.0.1:5001/", "http://127.0.0.1:5002/", "http://127.0.0.1:5003/", "http://127.0.0.1:5004/", "http://127.0.0.1:5005/", "http://127.0.0.1:5006/"]
+# ALL_WORKERS = ["http://127.0.0.1:5001/", "http://127.0.0.1:5002/", "http://127.0.0.1:5003/"]#, "http://127.0.0.1:5004/", "http://127.0.0.1:5005/", "http://127.0.0.1:5006/"]
 with open("nodes.txt") as f:
     url_list = f.readlines()
 ALL_WORKERS = [url.strip() for url in url_list]

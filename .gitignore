@@ -1,7 +1,7 @@
 /venv
 S4.pem
 /dashboard/node_modules/*
-*/node_modules
+/node_modules
 # dependencies
 /.pnp
 .pnp.js

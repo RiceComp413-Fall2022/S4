@@ -1,4 +1,4 @@
-import Dashboard from "./Dashboard.jsx";
+import Dashboard from "./pages/Dashboard.jsx";
 import * as React from "react";
 
 import { ChakraProvider } from "@chakra-ui/react";

@@ -67,7 +67,7 @@ function OverallStats() {
   }
 
   return (
-    <Box bgColor="teal.900">
+    <Box bgColor="#186a62">
       <Box p="7%" w="100%" display={["inherit", null, "none", "none"]}>
         <Content />
       </Box>

@@ -5,20 +5,49 @@ import {
   CircularProgress,
   CircularProgressLabel,
   Flex,
+  HStack,
 } from "@chakra-ui/react";
 
 function OverallStat({ label, color, stat }) {
+  function DesktopStat() {
+    return (
+      <Box w="100%" mt="5%" display={["none", null, "inherit", "inherit"]}>
+        <CircularProgress value={stat} size="100%" color={color}>
+          <CircularProgressLabel>
+            <Heading textAlign={"center"} w="100%">
+              {stat}%
+            </Heading>
+            <Heading fontSize="xl">{label}</Heading>
+          </CircularProgressLabel>
+        </CircularProgress>
+      </Box>
+    );
+  }
+
+  function MobileStat() {
+    return (
+      <HStack w="100%" mt="5%" display={["flex", null, "none", "none"]}>
+        <Box h="100%" mr="40px">
+          <CircularProgress value={stat} size="20vw" color={color}>
+            <CircularProgressLabel>
+              <Heading fontSize="2xl" textAlign={"center"}>
+                {stat}%
+              </Heading>
+            </CircularProgressLabel>
+          </CircularProgress>
+        </Box>
+        <Flex align="center" h="100%">
+          <Heading>{label}</Heading>
+        </Flex>
+      </HStack>
+    );
+  }
+
   return (
-    <Box w="100%" mt="5%">
-      <CircularProgress value={stat} size="100%" color={color}>
-        <CircularProgressLabel>
-          <Heading textAlign={"center"} w="100%">
-            {stat}%
-          </Heading>
-          <Heading fontSize="xl">{label}</Heading>
-        </CircularProgressLabel>
-      </CircularProgress>
-    </Box>
+    <>
+      <DesktopStat />
+      <MobileStat />
+    </>
   );
 }
 
@@ -26,31 +55,31 @@ function OverallStats() {
   function Content() {
     return (
       <SimpleGrid
-        w="50%"
-        columns={[1, null, null, 3]}
+        columns={[1, null, 3, 3]}
         spacing={["0px", null, null, "10px"]}
+        w="50%"
       >
-        <OverallStat label="Overall Health" color="green.400" stat={40} />
-        <OverallStat label="Overall Storage" color="blue.400" stat={40} />
-        <OverallStat label="Overall RPS" color="purple.400" stat={40} />
+        <OverallStat label="Health" color="green.400" stat={40} />
+        <OverallStat label="Storage" color="blue.400" stat={40} />
+        <OverallStat label="RPS" color="purple.400" stat={40} />
       </SimpleGrid>
     );
   }
 
   return (
-    <>
-      <Box as="Center" m="7%" display={["inherit", null, null, "none"]}>
+    <Box bgColor="teal.900">
+      <Box p="7%" w="100%" display={["inherit", null, "none", "none"]}>
         <Content />
       </Box>
-      <Box m="5%" display={["none", null, null, "inherit"]}>
+      <Box p="5%" display={["none", null, "inherit", "inherit"]}>
         <Flex align="center">
           <Content />
-          <Heading fontSize="4xl" ml="5%">
+          <Heading fontSize="5xl" ml="5%">
             Overall Statistics
           </Heading>
         </Flex>
       </Box>
-    </>
+    </Box>
   );
 }
 

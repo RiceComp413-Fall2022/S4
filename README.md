@@ -22,6 +22,12 @@ Proposal Doc: https://docs.google.com/document/d/e/2PACX-1vRGsQ7jpw3bz5lq5e-3cBR
 ### Start nodes:
 1. Run the startup script: `python3 startup.py <# nodes>` where the number of nodes is > 1. This will start one main node and the rest will be worker nodes.
 2. Once the script is finished, it will output the URL for the load balancer. To interact with the endpoints via Swagger, visit the URL `http://<load balancer URL>:8080`.
+### Scale Up
+1. After running the startup script, run the scale_up script: python3 scale_up.py. This will double the number of current nodes, using information on the main node and current worker nodes stored in the files scale_info.txt and nodes.txt
+2. After the script is complete, it will output the URLs of the new worker nodes.
+### Scale Down
+1. After running the startup script, run the scale_down script: python3 scale_down.py. This will half the number of currently running workers, if there are more than 3 workers running. Workers no longer needed will be removed from the load balancer and terminated.
+2. After the script is complete, it will output the URL of the worker nodes that were terminated.
 
 ## First Time Setup:
 

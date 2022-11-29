@@ -9,6 +9,10 @@ import {
 } from "@chakra-ui/react";
 import { AiFillCheckCircle, AiFillMinusCircle } from "react-icons/ai";
 
+// import { getWorkerIPs } from "../utils";
+// import { endpointCall } from "../utils";
+// const IPList = getWorkerIPs();
+
 const up = [true, true, false, true, true, true, false, false];
 
 function NodeStats() {

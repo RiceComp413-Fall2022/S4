@@ -2,6 +2,7 @@ import { Box, Flex, Heading, Image } from "@chakra-ui/react";
 import NodeStats from "./NodeStats";
 import OverallStats from "./OverallStats";
 import Dragonite from "../assets/dragonite.png";
+
 function Dashboard() {
   return (
     <>

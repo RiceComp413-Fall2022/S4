@@ -12,6 +12,7 @@ import { AiFillCheckCircle, AiFillMinusCircle } from "react-icons/ai";
 // import { getWorkerIPs } from "../utils";
 // import { endpointCall } from "../utils";
 // const IPList = getWorkerIPs();
+// Replace line 36: Node {num} --> Node {IPList[num]}
 
 const up = [true, true, false, true, true, true, false, false];
 

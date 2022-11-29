@@ -47,18 +47,40 @@ async function getWorkerIPs() {
   // workerIPs.forEach((element) =>
   //   endpointCall(element, "/DiskUsage")
   // );
+
+  // workerIPs.forEach(listObjects);
 }
 
+// Returns the files for that node
+async function listObjects(IP) {
+  var data = await endpointCall(IP, "/ListObjects");
+  var values = [];
+
+  for (var key in data) {
+    if (data[key] != "Files retrieved successfully.") {
+      for (var innerKey in data[key]) {
+        values.push(data[key][innerKey]);
+      }
+    }
+  }
+    
+  return values;
+}
+
+// Helper function that calls the specified endpoint
 async function endpointCall(url, endpoint) {
   const response = await fetch(url + endpoint);
 
   var data = await response.json();
-  console.log(data);
   return data;
 }
 
-console.log(await getWorkerIPs());
+// Function tests
+const result = await getWorkerIPs();
+const nodeFiles = await listObjects(workerIPs[0]);
+console.log(result);
+console.log(nodeFiles);
 
-// module.exports.getWorkerIPs = getWorkerIPs;
 export {getWorkerIPs};
 // export {endpointCall};
+// module.exports.getWorkerIPs = getWorkerIPs;

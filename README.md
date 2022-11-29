@@ -15,6 +15,14 @@ We want to create a distributed object storage system like S3 that focuses on th
 
 Proposal Doc: https://docs.google.com/document/d/e/2PACX-1vRGsQ7jpw3bz5lq5e-3cBRxnJzotZq034yJy0EUn0F8iKpqLDzQ3_fSGwiRQI6eYIMp1J3-XohiXuPR/pub
 
+## Run on AWS:
+### Setup:
+1. Set up AWS credentials and region: https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/setup-credentials.html (region should be us-east-1 by default). This can also be done with `aws configure` if the AWS CLI is set up.
+2. Copy S4.pem into the top-level directory, at the same level as startup.py.
+### Start nodes:
+1. Run the startup script: `python3 startup.py <# nodes>` where the number of nodes is > 1. This will start one main node and the rest will be worker nodes.
+2. Once the script is finished, it will output the URL for the load balancer. To interact with the endpoints via Swagger, visit the URL `http://<load balancer URL>:8080`.
+
 ## First Time Setup:
 
 1. Create a new virtual environment using Python 3.8.9:

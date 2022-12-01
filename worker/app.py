@@ -6,6 +6,7 @@ from tracemalloc import start
 import requests
 from io import BytesIO
 import shutil
+import random
 
 from flask import Flask, request, flash, send_file, jsonify
 from flask_restx import Api, Resource, fields
@@ -24,6 +25,9 @@ api = Api(
 )
 
 ns = api.namespace("", description="S4 API Endpoints")
+
+# Constants
+NUM_REPLICAS = 2
 
 # Fields
 node_number = -1
@@ -204,14 +208,16 @@ class get_object(Resource):
         filename = response["filename"]
         print("got json")
 
-        curr_replica = hash(key)
+        # get file if it is stored locally
+        res = retrieve_object(key, filename)
+        if res:
+            print("returning res")
+            return res
+
+        # randomly choose a node that should have a replica
+        primary_idx = hash(key)
+        curr_replica = random.randint(primary_idx, primary_idx + NUM_REPLICAS - 1) % len(url_array)
         start_replica = curr_replica
-        if curr_replica == node_number:
-            # this node is the primary replica
-            res = retrieve_object(key, filename)
-            if res:
-                print("returning res")
-                return res
 
         # try the first node
         try:
@@ -286,7 +292,7 @@ class put_object(Resource):
 
         curr_replica = hash(key)
 
-        replicas = 2
+        replicas = NUM_REPLICAS
         start_replica = curr_replica
         replica_nodes = []
         if curr_replica == node_number:

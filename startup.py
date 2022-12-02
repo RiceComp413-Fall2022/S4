@@ -15,6 +15,7 @@ if num_nodes < 2:
     print("At least 2 nodes are required for S4.")
     exit()
 ec2_resource = boto3.resource('ec2')
+ec2_client = boto3.client('ec2')
 
 def get_vpc_and_subnet(ec2, zone):
     default_vpc = None
@@ -34,7 +35,6 @@ def get_vpc_and_subnet(ec2, zone):
 vpc_id, subnet_id = get_vpc_and_subnet(ec2_resource, 'us-east-1b')
 
 def security_group_exists():
-    ec2_client = boto3.client('ec2')
     for group in ec2_client.describe_security_groups()['SecurityGroups']:
         if group['GroupName'] == SECURITY_GROUP_NAME:
             return True
@@ -129,6 +129,7 @@ instances = ec2_resource.create_instances(
 #The last ip in node_ips will be the main node, the rest will be workers
 node_ips = []
 node_url_to_instance_id = {}
+main_instance_id = ""
 for i in range(len(instances)):
     instance = instances[i]
     instance.wait_until_running()
@@ -136,6 +137,8 @@ for i in range(len(instances)):
     node_ips.append(instance.public_ip_address)
     if i < len(instances) - 1: 
         node_url_to_instance_id["http://" + instance.public_ip_address + f":{PORT_NUM}/"] = instance.id
+    else:
+        main_instance_id = instance.id
 
 node_urls = ["http://" + x + f":{PORT_NUM}/" for x in node_ips]
 print(node_urls)
@@ -262,14 +265,20 @@ def wait_lb(node):
     print(f"Waiting for {node}")
     while not test_lb(node):
         time.sleep(5)
+
+def get_security_group_id_name():
+    for group in ec2_client.describe_security_groups()['SecurityGroups']:
+        if group['GroupName'] == SECURITY_GROUP_NAME:
+            return group['GroupId'], group['GroupName']
         
 elb_dns = elb.describe_load_balancers(LoadBalancerArns=[balancer_arn])['LoadBalancers'][0]['DNSName']
 wait_lb(elb_dns)
 elb_arn = elb.describe_load_balancers(LoadBalancerArns=[balancer_arn])['LoadBalancers'][0]['LoadBalancerArn']
+group_id, group_name = get_security_group_id_name()
 
 with open("nodes.txt", "w") as nodes_f:
     nodes_f.write(json.dumps(node_url_to_instance_id))
 with open("scale_info.txt", "w") as scale_f:
-    scale_f.write(f"{target_group_arn}\n{main_node_url}\nhttp://{elb_dns}:{PORT_NUM}\n{elb_arn}")
+    scale_f.write(f"{target_group_arn}\n{main_node_url}\nhttp://{elb_dns}:{PORT_NUM}\n{elb_arn}\n{group_id}\n{group_name}\n{main_instance_id}")
 
 print(f"Load balancer: http://{elb_dns}:{PORT_NUM}")

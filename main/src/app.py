@@ -163,7 +163,7 @@ main_url = f"http://{ipAddr}:{PORT_NUM}/"
 
 healthy_workers = []
 
-# ALL_WORKERS = ["http://127.0.0.1:5001/", "http://127.0.0.1:5002/", "http://127.0.0.1:5003/", "http://127.0.0.1:5004/", "http://127.0.0.1:5005/", "http://127.0.0.1:5006/"]
+# ALL_WORKERS = ["http://127.0.0.1:5001/"]
 with open("nodes.txt") as f:
     url_list = f.readlines()
 ALL_WORKERS = [url.strip() for url in url_list]
@@ -531,6 +531,16 @@ class listObjects(Resource):
         global key_to_filename
 
         return {"msg": "Success", "objects": json.dumps(key_to_filename)}, 200
+
+# ----------------------------------- ListNodeToKeys -----------------------------------
+@ns.route("/ListNodeToKeys")
+class listNodeToKeys(Resource):
+    @ns.doc("ListNodeToKeys")
+    # @api.response(200, "Success", model=ListObjects200)
+    def get(self):
+        global node_to_keys
+        node_to_keys_lists = dict(zip(node_to_keys.keys(), map(list, node_to_keys.values())))
+        return {"msg": "Success", "node_to_keys_lists": json.dumps(dict(node_to_keys_lists))}, 200
 
 
 # ----------------------------------- DeleteObject -----------------------------------

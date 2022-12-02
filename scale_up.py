@@ -11,6 +11,7 @@ from fabric import Connection  # pip install fabric
 # TODO: automatic teardown
 
 port = 8080
+SECURITY_GROUP_NAME = 's4-security'
 
 with open("nodes.txt") as f:
     worker_nodes = json.loads(f.read())
@@ -42,14 +43,15 @@ def get_vpc_and_subnet(ec2, zone):
 vpc_id, subnet_id = get_vpc_and_subnet(ec2, "us-east-1b")
 
 instances = ec2.create_instances(
-    ImageId="ami-03a56b7b6b25caf7b",  # Custom AMI with dependencies preinstalled
-    InstanceType="t2.micro",  # 2 vCPU, 4 GiB memory
-    KeyName="S4",  # keypair for authentication
+    ImageId='ami-0b0dcb5067f052a63', # Amazon Linux 2 AMI (HVM) - Kernel 5.10, 64-bit (x86)
+    # ImageId='ami-03a56b7b6b25caf7b', # Custom AMI with dependencies preinstalled
+    InstanceType='t2.micro', # 2 vCPU, 4 GiB memory
+    KeyName='S4', # keypair for authentication
     MaxCount=num_nodes,
     MinCount=num_nodes,
     Placement={"AvailabilityZone": "us-east-1b"},
     SecurityGroups=[
-        "launch-wizard-1",  # security group for firewall
+        SECURITY_GROUP_NAME, # security group for firewall
     ],
     TagSpecifications=[
         {
@@ -104,16 +106,12 @@ for i, node in enumerate(node_ips):
     print(f"Connecting to node {node}, idx {i}")
     c = connect_retry(node, "ec2-user", "S4.pem")
 
-    c.run("sudo yum update -y && sudo yum install tmux -y")
-    c.run(
-        "cd S4 && git pull && source ./venv/bin/activate && pip install -r requirements.txt"
-    )
-    c.put(node_ips_f, remote="S4/main/src/nodes.txt")
-    c.run(
-        f'tmux new-session -d "cd S4 && source ./venv/bin/activate && cd worker && flask run --host=0.0.0.0 -p {port}"',
-        asynchronous=True,
-    )
-
+    c.run("sudo yum update -y && sudo yum install git tmux -y")
+    c.run("git clone https://github.com/RiceComp413-Fall2022/S4.git")
+    c.run("cd S4 && python3 -m venv ./venv && source ./venv/bin/activate && pip install --upgrade pip && pip install -r requirements.txt")
+    c.put(node_ips_f, remote='S4/main/src/nodes.txt')
+    c.run(f"tmux new-session -d \"cd S4 && source ./venv/bin/activate && cd worker && flask run --host=0.0.0.0 -p {port}\"", asynchronous=True)
+    
     c.close()
 
 

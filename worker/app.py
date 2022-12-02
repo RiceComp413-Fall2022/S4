@@ -6,6 +6,8 @@ from tracemalloc import start
 import requests
 from io import BytesIO
 from security import internal_required, api_required, INTERNAL_HEADERS
+import shutil
+import random
 
 from flask import Flask, request, flash, send_file, jsonify
 from flask_restx import Api, Resource, fields
@@ -216,14 +218,16 @@ class get_object(Resource):
         filename = response["filename"]
         print("got json")
 
-        curr_replica = hash(key)
+        # get file if it is stored locally
+        res = retrieve_object(key, filename)
+        if res:
+            print("returning res")
+            return res
+
+        # randomly choose a node that should have a replica
+        primary_idx = hash(key)
+        curr_replica = random.randint(primary_idx, primary_idx + NUM_REPLICAS - 1) % len(url_array)
         start_replica = curr_replica
-        if curr_replica == node_number:
-            # this node is the primary replica
-            res = retrieve_object(key, filename)
-            if res:
-                print("returning res")
-                return res
 
         # try the first node
         try:
@@ -308,7 +312,7 @@ class put_object(Resource):
 
         curr_replica = hash(key)
 
-        replicas = 2
+        replicas = NUM_REPLICAS
         start_replica = curr_replica
         replica_nodes = []
         if curr_replica == node_number:
@@ -409,6 +413,14 @@ class delete_object(Resource):
             # TODO: better way to do this?
             return {"msg": r.json()}, r.status_code
 
+# ----------------------------------- DiskUsage -----------------------------------
+@ns.route("/DiskUsage")
+class disk_usage(Resource):
+    @ns.doc("DiskUsage")
+    def get(self):
+        path = "./storage"
+        stats = shutil.disk_usage(path)
+        return {"msg": "Success", "disk_usage": stats._asdict()}
 
 # ----------------------------------- Internal Endpoints -----------------------------------
 
@@ -533,6 +545,11 @@ class _set_workers(Resource):
         url_array = json.loads(args.get("workers"))
         node_number = int(args.get("workerIndex"))
         main_url = args.get("mainUrl")
+
+        if bool(args.get("testing")) == True:
+            global FILE_PATH
+            FILE_PATH = "../tests/worker_" + str(node_number)
+
         return 200
 
 

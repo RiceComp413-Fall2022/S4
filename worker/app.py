@@ -10,6 +10,7 @@ import random
 
 from flask import Flask, request, flash, send_file, jsonify
 from flask_restx import Api, Resource, fields
+from flask_cors import CORS
 
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.utils import secure_filename
@@ -17,6 +18,8 @@ from werkzeug.datastructures import FileStorage
 
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app)
+CORS(app)
+
 api = Api(
     app,
     version="0.0.2",

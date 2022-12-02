@@ -172,7 +172,7 @@ for i, node in enumerate(node_ips):
     c = connect_retry(node, "ec2-user", "S4.pem")
 
     c.run("sudo yum update -y && sudo yum install git tmux -y")
-    c.run("git clone https://github.com/RiceComp413-Fall2022/S4.git")
+    c.run("git clone -b dashboard https://github.com/RiceComp413-Fall2022/S4.git")
     c.run("cd S4 && python3 -m venv ./venv && source ./venv/bin/activate && pip install --upgrade pip && pip install -r requirements.txt")
     c.put(node_ips_f, remote='S4/main/src/nodes.txt')
     if i < len(node_ips) - 1: # worker nodes

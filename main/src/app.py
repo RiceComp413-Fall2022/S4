@@ -12,6 +12,7 @@ import socket
 from time import sleep
 from datetime import datetime
 from threading import Timer
+from flask_cors import CORS
 
 from flask import Flask, request, flash, send_file, jsonify
 from flask_restx import Api, Resource, fields
@@ -24,6 +25,7 @@ from security import internal_required, admin_required, INTERNAL_HEADERS
 
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app)
+CORS(app)
 
 authorizations = {"apikey": {"type": "apiKey", "in": "header", "name": "X-API-KEY"}}
 

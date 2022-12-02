@@ -2,20 +2,8 @@ import { Box, Flex, Heading, Image } from "@chakra-ui/react";
 import NodeStats from "./NodeStats";
 import OverallStats from "./OverallStats";
 import Dragonite from "../assets/dragonite.png";
-import nodesTXT from '../notes.txt';
+import nodesTXT from '../nodes.txt';
 import React, { useState } from 'react';
-import { useEffect } from "react";
-
-// const express = require('express')
-// const cors = require("cors");
-// const corsOptions ={
-//   origin:'*', 
-//   credentials:true,            //access-control-allow-credentials:true
-//   optionSuccessStatus:200,
-// }
-
-// var app = express();
-// app.use(cors(corsOptions))
 
 function Dashboard() {
   const temp = []
@@ -43,7 +31,7 @@ function Dashboard() {
     var values = [];
 
     for (var key in data) {
-      if (data[key] != "Files retrieved successfully.") {
+      if (data[key] !== "Files retrieved successfully.") {
         for (var innerKey in data[key]) {
           values.push(data[key][innerKey]);
         }

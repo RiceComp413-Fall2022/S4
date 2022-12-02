@@ -506,7 +506,7 @@ class listNodeToKeys(Resource):
     def get(self):
         global node_to_keys
 
-        return {"msg": "Success", "node_to_keys": json.dumps(node_to_keys)}, 200
+        return {"msg": "Success", "node_to_keys": json.dumps(dict(node_to_keys))}, 200
 
 
 # ----------------------------------- DeleteObject -----------------------------------

@@ -9,42 +9,37 @@ import {
 } from "@chakra-ui/react";
 import { AiFillCheckCircle, AiFillMinusCircle } from "react-icons/ai";
 
-// import { getWorkerIPs } from "../utils";
-// import { endpointCall } from "../utils";
-// const IPList = getWorkerIPs();
-// Replace line 36: Node {num} --> Node {IPList[num]}
+ // need to fix disk={du(item)
 
-const up = [true, true, false, true, true, true, false, false];
-
-function NodeStats() {
+function NodeStats({nodeList, ec, lo, hc, du}) {
   return (
     <Box bgColor="#ffeebd">
       <SimpleGrid columns={[1, 2, 3, 4]} px="5%" py="2%">
-        {up.map((item, idx) => {
-          return <NodeStat key={idx} num={idx} up={item} />;
+        {nodeList.map((item, idx) => {
+          return <NodeStat key={idx} num={idx} ip={item} health={hc(item)} />;
         })}
       </SimpleGrid>
     </Box>
   );
 }
-function NodeStat({ num, up }) {
+function NodeStat({ num, ip, health}) { // add 'disk' here 
   return (
     <Box w="100%" pr="8%" py="3%">
       <Box rounded="lg" bgColor="#eebd8b" style={{ aspectRatio: 1 }} p="5%">
         <Flex align="center">
-          <Heading fontSize="xl" ml="5%">
-            Node {num}
+          <Heading fontSize="l" ml="5%">
+            Node {num}, IP: {ip}
           </Heading>
           <Spacer />
           <Icon
-            as={up ? AiFillCheckCircle : AiFillMinusCircle}
-            color={up ? "#20a47b" : "red.400"}
+            as={health ? AiFillCheckCircle : AiFillMinusCircle}
+            color={health ? "#20a47b" : "red.400"}
             boxSize="25px"
             mr="5%"
           />
         </Flex>
-        <Heading p="5%" fontSize="xl">
-          Storage Used: 40%
+        <Heading p="5%" fontSize="l">
+          Storage Used: disk
         </Heading>
         <Box
           overflowY={"auto"}
@@ -55,7 +50,7 @@ function NodeStat({ num, up }) {
           maxH="75%"
           position="relative"
         >
-          {!up && (
+          {!health && (
             <Box
               position="absolute"
               top="0"

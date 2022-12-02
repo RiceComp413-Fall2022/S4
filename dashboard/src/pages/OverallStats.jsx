@@ -51,7 +51,7 @@ function OverallStat({ label, color, stat }) {
   );
 }
 
-function OverallStats() {
+function OverallStats({nodeList, ec, lo, hc, du}) {
   function Content() {
     return (
       <SimpleGrid

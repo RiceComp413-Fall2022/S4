@@ -23,7 +23,6 @@ from werkzeug.datastructures import FileStorage
 
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app)
-CORS(app)
 
 api = Api(
     app,

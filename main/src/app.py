@@ -22,6 +22,7 @@ from werkzeug.utils import secure_filename
 from werkzeug.datastructures import FileStorage
 
 app = Flask(__name__)
+CORS(app)
 app.wsgi_app = ProxyFix(app.wsgi_app)
 
 api = Api(

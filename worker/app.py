@@ -19,7 +19,6 @@ from werkzeug.datastructures import FileStorage
 
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app)
-CORS(app)
 
 authorizations = {"apikey": {"type": "apiKey", "in": "header", "name": "X-API-KEY"}}
 

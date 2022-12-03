@@ -7,6 +7,7 @@ import {
   Flex,
   HStack,
 } from "@chakra-ui/react";
+import { percent } from "style-value-types";
 
 function OverallStat({ label, color, stat }) {
   function DesktopStat() {
@@ -51,7 +52,21 @@ function OverallStat({ label, color, stat }) {
   );
 }
 
-function OverallStats({nodeList, ec, lo, hc, du}) {
+function OverallStats({everything}) {
+  var [size, totalHealthy, percentHealthy, totalStorage, usedStorage, percentUsedStorage] = [0, 0, 0, 0, 0, 0];
+
+  everything.map((x, i) => {
+    size++;
+    if (x[2] === true) {
+      totalHealthy++;
+    }
+    usedStorage += x[3];
+    totalStorage += 100;
+  });
+
+  percentHealthy = totalHealthy/size*100;
+  percentUsedStorage = usedStorage/totalStorage*100;
+
   function Content() {
     return (
       <SimpleGrid
@@ -59,8 +74,8 @@ function OverallStats({nodeList, ec, lo, hc, du}) {
         spacing={["0px", null, null, "10px"]}
         w="50%"
       >
-        <OverallStat label="Health" color="green.400" stat={40} />
-        <OverallStat label="Storage" color="blue.400" stat={40} />
+        <OverallStat label="Health" color="green.400" stat={percentHealthy} />
+        <OverallStat label="Storage" color="blue.400" stat={percentUsedStorage} />
         <OverallStat label="RPS" color="purple.400" stat={40} />
       </SimpleGrid>
     );

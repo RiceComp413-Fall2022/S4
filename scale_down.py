@@ -4,6 +4,7 @@ import io
 import time
 import requests  # pip install requests
 import boto3  # pip install boto3[crt]
+import shutil
 
 from fabric import Connection  # pip install fabric
 
@@ -72,3 +73,5 @@ ec2.instances.filter(InstanceIds=instance_ids).terminate()
 # remove terminated nodes from nodes.txt
 with open("nodes.txt", "w") as nodes_f:
     nodes_f.write(json.dumps(worker_nodes))
+
+shutil.copyfile("./nodes.txt", "./dashboard/src/nodes.txt")

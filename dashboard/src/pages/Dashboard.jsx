@@ -64,17 +64,6 @@ function Dashboard() {
     })
   }
 
-  // TESTING PURPOSES -- NEED TO CHANGE TO USE FOR LOOP, POSSIBLY WITH USE EFFECT
-  // listObjects(nodes[0]);
-  // healthCheck(nodes[0]);
-  // diskUsage(nodes[0]);
-  // everything.push([nodes[0], loResult, hcResult, duResult]);
-
-  // listObjects(nodes[1]);
-  // healthCheck(nodes[1]);
-  // diskUsage(nodes[0]);
-  // everything.push([nodes[1], loResult, hcResult, duResult]);
-
   const getData = () => {
     for (var i = 0; i < nodes.length; i++) {
       listObjects(nodes[i]);
@@ -85,20 +74,6 @@ function Dashboard() {
   }
 
   getData();
-
-  // useEffect(() => {
-  //   for (var ip in nodes) {
-  //     listObjects(ip);
-  //     healthCheck(ip);
-  //     console.log(loResult);
-  //     console.log(hcResult);
-  //     everything.push([ip, loResult, hcResult]);
-  //   }
-  // })
-
-  // for (var i = 0; i < hcList.length; i++) {
-  //   everything.push([nodeList[i], hcList[i], loList[i]]);
-  // }    
 
   // // Need to modify the data result so it just shows the disk_usage, nothing else
   // const diskUsage = (ip) => {

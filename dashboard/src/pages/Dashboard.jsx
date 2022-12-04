@@ -65,15 +65,26 @@ function Dashboard() {
   }
 
   // TESTING PURPOSES -- NEED TO CHANGE TO USE FOR LOOP, POSSIBLY WITH USE EFFECT
-  listObjects(nodes[0]);
-  healthCheck(nodes[0]);
-  diskUsage(nodes[0]);
-  everything.push([nodes[0], loResult, hcResult, duResult]);
+  // listObjects(nodes[0]);
+  // healthCheck(nodes[0]);
+  // diskUsage(nodes[0]);
+  // everything.push([nodes[0], loResult, hcResult, duResult]);
 
-  listObjects(nodes[1]);
-  healthCheck(nodes[1]);
-  diskUsage(nodes[0]);
-  everything.push([nodes[1], loResult, hcResult, duResult]);
+  // listObjects(nodes[1]);
+  // healthCheck(nodes[1]);
+  // diskUsage(nodes[0]);
+  // everything.push([nodes[1], loResult, hcResult, duResult]);
+
+  const getData = () => {
+    for (var i = 0; i < nodes.length; i++) {
+      listObjects(nodes[i]);
+      healthCheck(nodes[i]);
+      diskUsage(nodes[i]);
+      everything.push([nodes[i], loResult, hcResult, duResult]);
+    }
+  }
+
+  getData();
 
   // useEffect(() => {
   //   for (var ip in nodes) {

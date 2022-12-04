@@ -60,7 +60,7 @@ function Dashboard() {
     var data = endpointCall(ip, "/DiskUsage");
 
     data.then(function(result) {
-      setduResult(Math.round(result["disk_usage"]["used"] / result["disk_usage"]["total"] * 100 * 100)/100);
+      setduResult(Math.round(result["disk_usage"]["used"] / result["disk_usage"]["total"] * 100 * 10)/10);
     })
   }
 

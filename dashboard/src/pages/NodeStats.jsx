@@ -47,6 +47,7 @@ function NodeStat({ num, ip, health, listO, diskUsage}) {
           bgColor="#9c5a4a"
           maxH="75%"
           position="relative"
+          minH="75%"
         >
           {!health && (
             <Box

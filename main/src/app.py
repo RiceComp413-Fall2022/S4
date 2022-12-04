@@ -16,6 +16,7 @@ from flask_cors import CORS
 
 from flask import Flask, request, flash, send_file, jsonify
 from flask_restx import Api, Resource, fields
+from flask_cors import CORS
 
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.utils import secure_filename
@@ -24,6 +25,7 @@ from werkzeug.datastructures import FileStorage
 from security import internal_required, admin_required, INTERNAL_HEADERS
 
 app = Flask(__name__)
+CORS(app)
 app.wsgi_app = ProxyFix(app.wsgi_app)
 
 authorizations = {"apikey": {"type": "apiKey", "in": "header", "name": "X-API-KEY"}}

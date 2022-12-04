@@ -33,6 +33,10 @@ api = Api(
 )
 
 ns = api.namespace("", description="S4 API Endpoints")
+
+# Constants
+NUM_REPLICAS = 2
+
 # Fields
 node_number = -1
 url_array = []

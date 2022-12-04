@@ -165,3 +165,4 @@ with open("nodes.txt", "w") as nodes_f:
     nodes_f.write(json.dumps(worker_nodes))
 
 shutil.copyfile("./nodes.txt", "./dashboard/src/nodes.txt")
+shutil.copyfile("./scale_info.txt", "./dashboard/src/mainNode.txt")

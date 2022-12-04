@@ -283,5 +283,6 @@ with open("scale_info.txt", "w") as scale_f:
     scale_f.write(f"{target_group_arn}\n{main_node_url}\nhttp://{elb_dns}:{PORT_NUM}\n{elb_arn}\n{group_id}\n{group_name}\n{main_instance_id}")
 
 shutil.copyfile("./nodes.txt", "./dashboard/src/nodes.txt")
+shutil.copyfile("./scale_info.txt", "./dashboard/src/mainNode.txt")
 
 print(f"Load balancer: http://{elb_dns}:{PORT_NUM}")

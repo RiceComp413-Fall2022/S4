@@ -3,6 +3,7 @@ import NodeStats from "./NodeStats";
 import OverallStats from "./OverallStats";
 import Dragonite from "../assets/dragonite.png";
 import nodesTXT from '../nodes.txt';
+import mainNodeTXT from '../mainNode.txt'
 import React, { useState } from 'react';
 import { useEffect } from "react";
 
@@ -15,18 +16,29 @@ function Dashboard() {
   const [loResult, setloResult] = useState([]);
   const [duResult, setduResult] = useState(0);
 
-  // Get the nodes from the nodextxt file
+  // Get the worker nodes from the nodextxt file
   fetch(nodesTXT).then(r => r.text()).then(text => {    
     Object.entries(JSON.parse(text)).map(([key, value]) => nodeList.push(key));
     setNodes(nodeList);
   });
 
+  // Get the main node from scale_info.txt
+  fetch(mainNodeTXT).then(r => r.text()).then(text => {    
+    Object.entries(JSON.parse(text)).map(([key, value]) => nodeList.push(key));
+    setNodes(nodeList);
+  });
+
+    
   // Call the endpoint, should return the json result
   const endpointCall = async (url, endpoint) => {
     const response = await fetch(url + endpoint);
     const json = await response.json();
     return json;
   }
+
+  // CHANGE TO MAINNODE/ListNodeToKeys
+  // CHANGE TO MAINNODE/ListNodeToKeys
+  // CHANGE TO MAINNODE/ListNodeToKeys
 
   // ------------------------ ListObjects ------------------------
   const listObjects = (ip) => {

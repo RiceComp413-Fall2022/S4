@@ -64,8 +64,8 @@ function OverallStats({everything}) {
     totalStorage += 100;
   });
 
-  percentHealthy = totalHealthy/size*100;
-  percentUsedStorage = usedStorage/totalStorage*100;
+  percentHealthy = Math.round(totalHealthy/size*100 * 10)/10;
+  percentUsedStorage = Math.round(usedStorage/totalStorage*100 *10)/10;
 
   function Content() {
     return (
@@ -76,7 +76,6 @@ function OverallStats({everything}) {
       >
         <OverallStat label="Health" color="green.400" stat={percentHealthy} />
         <OverallStat label="Storage" color="blue.400" stat={percentUsedStorage} />
-        <OverallStat label="RPS" color="purple.400" stat={40} />
       </SimpleGrid>
     );
   }
@@ -89,7 +88,7 @@ function OverallStats({everything}) {
       <Box p="5%" display={["none", null, "inherit", "inherit"]}>
         <Flex align="center">
           <Content />
-          <Heading fontSize="5xl" ml="5%">
+          <Heading fontSize="5xl" ml="1%">
             Overall Statistics
           </Heading>
         </Flex>

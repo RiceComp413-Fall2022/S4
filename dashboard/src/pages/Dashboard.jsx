@@ -75,12 +75,6 @@ function Dashboard() {
 
   getData();
 
-  // // Need to modify the data result so it just shows the disk_usage, nothing else
-  // const diskUsage = (ip) => {
-  //   var data = endpointCall(ip, "/DiskUsage");
-  //   return data.json().disk_usage;
-  // }
-
   return (
     <>
       <Box bgColor="#ee9c39">

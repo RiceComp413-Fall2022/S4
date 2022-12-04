@@ -8,9 +8,6 @@ import {
   Spacer,
 } from "@chakra-ui/react";
 import { AiFillCheckCircle, AiFillMinusCircle } from "react-icons/ai";
-
- // need to fix disk={du(item)
-
  
 function NodeStats({everything}) {
   return (
@@ -23,7 +20,7 @@ function NodeStats({everything}) {
     </Box>
   );
 }
-function NodeStat({ num, ip, health, listO, diskUsage}) { // add 'disk' here 
+function NodeStat({ num, ip, health, listO, diskUsage}) {
   return (
     <Box w="100%" pr="8%" py="3%">
       <Box rounded="lg" bgColor="#eebd8b" style={{ aspectRatio: 1 }} p="5%">

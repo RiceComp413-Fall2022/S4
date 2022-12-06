@@ -40,7 +40,7 @@ function NodeStat({ num, ip, health, listO, diskUsage, filesForNode}) {
           IP: {ip} Storage Used: {diskUsage}%
         </Heading>
         <Box
-          overflowY={"auto"}
+          overflowY={"scroll"}
           m="3%"
           p="5%"
           rounded="lg"
@@ -64,7 +64,7 @@ function NodeStat({ num, ip, health, listO, diskUsage, filesForNode}) {
             Files
           </Heading>
           {filesForNode.map((item, idx) => (
-            <Text>{item}</Text>
+            <Text key={idx}>{item}</Text>
           ))}
         </Box>
       </Box>

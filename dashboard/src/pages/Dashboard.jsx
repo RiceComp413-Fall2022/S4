@@ -8,27 +8,34 @@ import React, { useState } from 'react';
 import { useEffect } from "react";
 
 function Dashboard() {
-  const everything = []
-  const nodeList = []
-
+  // const everything = []
+  
+  const [everything, setEverything] = useState([]);
   const [nodes, setNodes] = useState([]);
   const [mainNode, setMainNode] = useState("");
   const [hcResult, sethcResult] = useState();
-  const [loResult, setloResult] = useState([]);
+  // const [loResult, setloResult] = useState([]);
   const [duResult, setduResult] = useState(0);
   const [workerFiles, setWorkerFiles] = useState({});
-  const [keyToFile, setKeyToFile] = useState({});
-
+  // const [keyToFile, setKeyToFile] = useState({});
+  
   // Get the worker nodes from nodes.txt
-  fetch(nodesTXT).then(r => r.text()).then(text => {    
-    Object.entries(JSON.parse(text)).map(([key, value]) => nodeList.push(key));
-    setNodes(nodeList);
-  });
+  useEffect(()=>{
+      const nodeList = []
+      fetch(nodesTXT).then(r => r.text()).then(text => {    
+        Object.entries(JSON.parse(text)).map(([key, value]) => nodeList.push(key));
+        setNodes(nodeList);
+      });
+      
+      // Get the main node from scale_info.txt
+      fetch(mainNodeTXT).then(r => r.text()).then(text => {   
+        setMainNode(text.split(/\r?\n/).filter(element => element)[1]);
+      });
+  }, [])
 
-  // Get the main node from scale_info.txt
-  fetch(mainNodeTXT).then(r => r.text()).then(text => {   
-    setMainNode(text.split(/\r?\n/).filter(element => element)[1]);
-  });
+  useEffect(()=>{
+    getData();
+  }, [mainNode, nodes])
     
   // Call the endpoint, should return the json result
   const endpointCall = async (url, endpoint) => {
@@ -37,83 +44,83 @@ function Dashboard() {
 
   // ------------------------ ListNodeSpecificObjects ------------------------
   const nodeToKeys = async (ip) => {
-    var data = Promise.resolve(endpointCall(ip, "/ListNodeToKeys"));
-    // var data = await endpointCall(ip, "/ListNodeToKeys");
-    var values = {};
-
-    data.then(function(result) {
-      for (var key in result) {
-        if (key !== "msg") {
-          Object.entries(JSON.parse(result[key])).map(([key, value]) => {
-            values[key] = value;
-          })
-        }
-      }
-      setWorkerFiles(values);
-    })
+    let data = await endpointCall(ip, "/ListNodeToKeys");
+    console.log("data", data);
+    let values = {};
+    for (let key in data) {
+    if (key !== "msg") {
+      Object.entries(JSON.parse(data[key])).map(([key, value]) => {
+        values[key] = value;
+      })
+    }
+  }
+  console.log(values);
+  return values;
   }
 
   // ------------------------ ListAllObjects ------------------------
-  const listObjects = (ip) => {
-    var data = endpointCall(ip, "/ListObjects");
-    var values = [];
-    var keyToFile = {};
-
-    data.then(function(result) {
-      for (var key in result) {
-        if (result[key] !== "Files retrieved successfully.") {
-          for (var innerKey in result[key]) {
-            values.push(result[key][innerKey]);
-            keyToFile[innerKey] = result[key][innerKey];
-          }
+  const listObjects = async (ip) => {
+    let result = await endpointCall(ip, "/ListObjects");
+    let values = [];
+    let keyToFile = {};
+    for (let key in result) {
+      if (result[key] !== "Files retrieved successfully.") {
+        for (let innerKey in result[key]) {
+          values.push(result[key][innerKey]);
+          keyToFile[innerKey] = result[key][innerKey];
         }
       }
-      setloResult(values);
-      setKeyToFile(keyToFile);
-    })
+    }
+    return [values, keyToFile];
   }
 
   // ------------------------ HealthCheck ------------------------
-  const healthCheck = (ip) => {
-    var data = endpointCall(ip, "/HealthCheck");
+  const healthCheck = async (ip) => {
+    let result = await endpointCall(ip, "/HealthCheck");
 
-    data.then(function(result) {
-      if (result != null) sethcResult(true);
-      else sethcResult(false);
-    })
+    if (result != null) sethcResult(true);
+    else sethcResult(false);
+
+    return result != null ? true : false;
+
   }
 
   // ------------------------ DiskUsage ------------------------
-  const diskUsage = (ip) => {
-    var data = endpointCall(ip, "/DiskUsage");
-
-    data.then(function(result) {
-      setduResult(Math.round(result["disk_usage"]["used"] / result["disk_usage"]["total"] * 100 * 10)/10);
-    })
+  const diskUsage = async (ip) => {
+    let result = await endpointCall(ip, "/DiskUsage");
+    setduResult(Math.round(result["disk_usage"]["used"] / result["disk_usage"]["total"] * 100 * 10)/10);
+    return Math.round(result["disk_usage"]["used"] / result["disk_usage"]["total"] * 100 * 10)/10
   }
 
   // Get the data
-  const getData = () => {
-    nodeToKeys(mainNode);
-    listObjects(nodes[0]);
+  const getData = async () => {
+    let listObjectsResult;
+    let workerFilesResult;
+    let keyToFile1;
+    if (mainNode) {
+      workerFilesResult = await nodeToKeys(mainNode);
+    }
+    if (nodes.length) {
+      [listObjectsResult, keyToFile1] = await listObjects(nodes[0]);
+    }
+    let allData = []
+    for (let i = 0; i < nodes.length; i++) {
+      let filesForNode = new Set();
+      const healthCheckResult = await healthCheck(nodes[i]);
+      const diskUsageResult =  await diskUsage(nodes[i]);
 
-    for (var i = 0; i < nodes.length; i++) {
-      var filesForNode = new Set();
-      healthCheck(nodes[i]);
-      diskUsage(nodes[i]);
-
-      if (workerFiles[nodes[i]] !== undefined) {
-        for (var j = 0; j < workerFiles[nodes[i]].length; j++) {
-          filesForNode.add(keyToFile[workerFiles[nodes[i]][j]]);
+      if (workerFilesResult !== undefined && workerFilesResult[nodes[i]] !== undefined) {
+        for (let j = 0; j < workerFilesResult[nodes[i]].length; j++) {
+          console.log({i}, keyToFile1);
+          filesForNode.add(keyToFile1[workerFilesResult[nodes[i]][j]]);
         }
       }
-
-      everything.push([nodes[i], loResult, hcResult, duResult, Array.from(filesForNode)]);
+      console.log(filesForNode);
+      allData.push([nodes[i], listObjectsResult, healthCheckResult, diskUsageResult, Array.from(filesForNode)]);
     }
+    setEverything(allData)
   }
-
-  getData();
-
+    
   return (
     <>
       <Box bgColor="#ee9c39">

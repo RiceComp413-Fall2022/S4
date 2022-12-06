@@ -14,13 +14,13 @@ function NodeStats({everything}) {
     <Box bgColor="#ffeebd">
       <SimpleGrid columns={[1, 2, 3, 4]} px="5%" py="2%">
         {everything.map((item, idx) => {
-          return <NodeStat key={idx} num={idx} ip={item[0]} health={item[2]} listO={item[1]} diskUsage={item[3]}/>;
+          return <NodeStat key={idx} num={idx} ip={item[0]} health={item[2]} listO={item[1]} diskUsage={item[3]} filesForNode={item[4]}/>;
         })}
       </SimpleGrid>
     </Box>
   );
 }
-function NodeStat({ num, ip, health, listO, diskUsage}) {
+function NodeStat({ num, ip, health, listO, diskUsage, filesForNode}) {
   return (
     <Box w="100%" pr="8%" py="3%">
       <Box rounded="lg" bgColor="#eebd8b" style={{ aspectRatio: 1 }} p="5%">
@@ -63,8 +63,8 @@ function NodeStat({ num, ip, health, listO, diskUsage}) {
           <Heading fontSize="lg" mb="2px">
             Files
           </Heading>
-          {listO.map((item, idx) => (
-            <Text>{listO[idx]}</Text>
+          {filesForNode.map((item, idx) => (
+            <Text>{item}</Text>
           ))}
         </Box>
       </Box>

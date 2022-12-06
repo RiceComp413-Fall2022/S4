@@ -12,48 +12,63 @@ function Dashboard() {
   const nodeList = []
 
   const [nodes, setNodes] = useState([]);
+  const [mainNode, setMainNode] = useState("");
   const [hcResult, sethcResult] = useState();
   const [loResult, setloResult] = useState([]);
   const [duResult, setduResult] = useState(0);
+  const [workerFiles, setWorkerFiles] = useState({});
+  const [keyToFile, setKeyToFile] = useState({});
 
-  // Get the worker nodes from the nodextxt file
+  // Get the worker nodes from nodes.txt
   fetch(nodesTXT).then(r => r.text()).then(text => {    
     Object.entries(JSON.parse(text)).map(([key, value]) => nodeList.push(key));
     setNodes(nodeList);
   });
 
   // Get the main node from scale_info.txt
-  fetch(mainNodeTXT).then(r => r.text()).then(text => {    
-    Object.entries(JSON.parse(text)).map(([key, value]) => nodeList.push(key));
-    setNodes(nodeList);
+  fetch(mainNodeTXT).then(r => r.text()).then(text => {   
+    setMainNode(text.split(/\r?\n/).filter(element => element)[1]);
   });
-
     
   // Call the endpoint, should return the json result
   const endpointCall = async (url, endpoint) => {
-    const response = await fetch(url + endpoint);
-    const json = await response.json();
-    return json;
+    return await (await fetch(url + endpoint)).json();
   }
 
-  // CHANGE TO MAINNODE/ListNodeToKeys
-  // CHANGE TO MAINNODE/ListNodeToKeys
-  // CHANGE TO MAINNODE/ListNodeToKeys
+  // ------------------------ ListNodeSpecificObjects ------------------------
+  const nodeToKeys = async (ip) => {
+    var data = Promise.resolve(endpointCall(ip, "/ListNodeToKeys"));
+    // var data = await endpointCall(ip, "/ListNodeToKeys");
+    var values = {};
 
-  // ------------------------ ListObjects ------------------------
+    data.then(function(result) {
+      for (var key in result) {
+        if (key !== "msg") {
+          Object.entries(JSON.parse(result[key])).map(([key, value]) => {
+            values[key] = value;
+          })
+        }
+      }
+      setWorkerFiles(values);
+    })
+  }
+  // ------------------------ ListAllObjects ------------------------
   const listObjects = (ip) => {
     var data = endpointCall(ip, "/ListObjects");
     var values = [];
+    var keyToFile = {};
 
     data.then(function(result) {
       for (var key in result) {
         if (result[key] !== "Files retrieved successfully.") {
           for (var innerKey in result[key]) {
             values.push(result[key][innerKey]);
+            keyToFile[innerKey] = result[key][innerKey];
           }
         }
       }
       setloResult(values);
+      setKeyToFile(keyToFile);
     })
   }
 
@@ -77,11 +92,21 @@ function Dashboard() {
   }
 
   const getData = () => {
+    nodeToKeys(mainNode);
+    listObjects(nodes[0]);
+
     for (var i = 0; i < nodes.length; i++) {
-      listObjects(nodes[i]);
+      var filesForNode = new Set();
       healthCheck(nodes[i]);
       diskUsage(nodes[i]);
-      everything.push([nodes[i], loResult, hcResult, duResult]);
+
+      if (workerFiles[nodes[i]] !== undefined) {
+        for (var j = 0; j < workerFiles[nodes[i]].length; j++) {
+          filesForNode.add(keyToFile[workerFiles[nodes[i]][j]]);
+        }
+      }
+
+      everything.push([nodes[i], loResult, hcResult, duResult, Array.from(filesForNode)]);
     }
   }
 

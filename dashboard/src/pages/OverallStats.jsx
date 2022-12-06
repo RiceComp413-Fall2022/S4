@@ -64,8 +64,8 @@ function OverallStats({everything}) {
     totalStorage += 100;
   });
 
-  percentHealthy = Math.round(totalHealthy/size*100 * 10)/10;
-  percentUsedStorage = Math.round(usedStorage/totalStorage*100 *10)/10;
+  percentHealthy = Math.round(totalHealthy/size*100);
+  percentUsedStorage = Math.round(usedStorage/totalStorage*100);
 
   function Content() {
     return (

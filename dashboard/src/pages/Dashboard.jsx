@@ -52,6 +52,7 @@ function Dashboard() {
       setWorkerFiles(values);
     })
   }
+
   // ------------------------ ListAllObjects ------------------------
   const listObjects = (ip) => {
     var data = endpointCall(ip, "/ListObjects");
@@ -91,6 +92,7 @@ function Dashboard() {
     })
   }
 
+  // Get the data
   const getData = () => {
     nodeToKeys(mainNode);
     listObjects(nodes[0]);

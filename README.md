@@ -4,7 +4,7 @@ Super Simple Storage Service
 
 ## Team Members:
 
-- Hunena Badat, hsb2@rice.edu
+- Hunena Badat, hsb2@rice.edu, nenab2501@gmail.com
 - John Shieh, jcs17@rice.edu, thejohnshieh@gmail.com
 - Gavin Zhang, zz66@rice.edu
 - Eric Yang, eyy1@rice.edu

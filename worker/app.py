@@ -128,21 +128,21 @@ ListObjects200 = api.model(
 )
 
 DeleteObject400 = api.model(
-    "Deletebject",
+    "DeleteObject",
     {
         "Key": fields.String(example="Key not specified"),
     },
 )
 
 DeleteObject404 = api.model(
-    "Deletebject2",
+    "DeleteObject2",
     {
         "Key": fields.String(example="Key does not exist"),
     },
 )
 
 DeleteObject200 = api.model(
-    "Deletebject3",
+    "DeleteObject3",
     {
         "Key": fields.String(
             description="Deletes an object store on the local filesystem.",
@@ -181,6 +181,7 @@ file_param.add_argument("file", location="files", type=FileStorage)
 # ----------------------------------- HealthCheck -----------------------------------
 @ns.route("/HealthCheck")
 class status_update(Resource):
+    '''Used to perform timely health check on worker nodes'''
     @ns.doc("HealthCheck")
     @internal_required
     def get(self):
@@ -197,7 +198,8 @@ class get_object(Resource):
     @api.response(404, "Error: Not Found", model=GetObject404)
     @api_required
     def get(self):
-
+        ''' Retrieves and returns the object specified by the key parameter if exists. 
+        Hashes key name to determine correct worker node. '''
         # get the key from the request parameters
         args = request.args
         key = args.get("key")
@@ -217,15 +219,12 @@ class get_object(Resource):
         elif r.status_code == 400:
             return r
 
-        print("trying to get json")
         response = r.json()
         filename = response["filename"]
-        print("got json")
 
         # get file if it is stored locally
         res = retrieve_object(key, filename)
         if res:
-            print("returning res")
             return res
 
         # randomly choose a node that should have a replica
@@ -275,7 +274,7 @@ class put_object(Resource):
     @api.response(404, "Error: Not Found", model=PutObject404)
     @api_required
     def put(self):
-
+        ''' Saves specified object identified by specified key on system '''
         # get the key from the request parameters
         args = request.args
         key = args.get("key")
@@ -353,7 +352,6 @@ class put_object(Resource):
                 # already performed linear traversal once
                 break
 
-        # TODO: do we need key and filename? why data vs. params?
         # Record data in main node
         r = requests.post(
             main_url + "RecordPutObject",
@@ -371,6 +369,7 @@ class list_objects(Resource):
     @api.response(200, "Success", model=ListObjects200)
     @api_required
     def get(self):
+        ''' Returns a list of objects that are stored on the system '''
         # Get key to file name mapping from main node
         r = requests.get(
             url=main_url + "ListObjects",
@@ -399,6 +398,7 @@ class delete_object(Resource):
     @api.response(404, "Error: Not Found", model=DeleteObject404)
     @api_required
     def put(self):
+        ''' Deletes objects specified by key from the system '''
         # get the key from the request parameters
         args = request.args
         key = args.get("key")
@@ -414,7 +414,6 @@ class delete_object(Resource):
         if r.status_code == 200:
             return {"msg": "The object was deleted successfully."}, 200
         else:
-            # TODO: better way to do this?
             return {"msg": r.json()}, r.status_code
 
 # ----------------------------------- DiskUsage -----------------------------------
@@ -422,6 +421,7 @@ class delete_object(Resource):
 class disk_usage(Resource):
     @ns.doc("DiskUsage")
     def get(self):
+        ''' Returns disk storage usage '''
         path = "./storage"
         stats = shutil.disk_usage(path)
         return {"msg": "Success", "disk_usage": stats._asdict()}
@@ -439,7 +439,7 @@ class _get_object(Resource):
     @api.response(404, "Error: Not Found", model=GetObject404)
     @internal_required
     def get(self):
-
+        ''' Internal GetObject endpoint use to check if object is on this worker node'''
         # get the key from the request parameters
         args = request.args
         key = args.get("key")
@@ -462,6 +462,7 @@ class _put_object(Resource):
     @api.response(404, "Error: Not Found", model=PutObject404)
     @internal_required
     def put(self):
+        '''Internal PutObject endpoint used to save object to this worker node'''
         args = request.args
         key = args.get("key")
 
@@ -478,14 +479,14 @@ class _put_object(Resource):
 class _delete_object(Resource):
     @ns.doc("_DeleteObject")
     @internal_required
-    # TODO add api response model
     def put(self):
+        '''Internal DeleteObject endpoint used to delete object specified by key on this worker node'''
         args = request.args
         key = args.get("key")
 
         try:
             # remove file from filesystem
-            print(os.path.join(FILE_PATH, key))
+            # print(os.path.join(FILE_PATH, key))
             os.remove(os.path.join(FILE_PATH, key))
             return {"msg": "Object successfully deleted."}, 200
         except FileNotFoundError:
@@ -503,14 +504,13 @@ class _forward_object(Resource):
     @ns.doc("_ForwardObject")
     @internal_required
     def put(self):
+        '''Internal ForwardObject endpoint used to send object from this worker node to specifiec worker node'''
         args = request.args
         key = args.get("key")
         forwardingToNode = args.get("forwardingToNode")
         file = open(os.path.join(FILE_PATH, key), "rb").read()
 
-        print("\nforwardingTo: " + forwardingToNode + "\n")
-
-        # url_array[forwardingToNode] + "/_PutObject",
+        # print("\nforwardingTo: " + forwardingToNode + "\n")
         try:
             r = requests.put(
                 url=forwardingToNode + "_PutObject",
@@ -527,9 +527,9 @@ class _forward_object(Resource):
 @ns.route("/_JoinNetwork")
 class _join_network(Resource):
     @ns.doc("_JoinNetwork")
-    # TODO add api response model
     @internal_required
-    def get(self):  # TODO is this get
+    def get(self): 
+        '''Internal endpoint to verify worker node has joined network'''
         return 200
 
 
@@ -540,8 +540,8 @@ class _join_network(Resource):
 class _set_workers(Resource):
     @ns.doc("_SetWorkers")
     @internal_required
-    # TODO add api response model
     def put(self):
+        '''Internal endpoint to set the workers URLs on this system'''
         args = request.args
         global url_array
         global node_number
@@ -561,6 +561,7 @@ class _set_workers(Resource):
 
 
 def retrieve_object(key, filename):
+    '''Retrives object from the disk'''
     # try to get the file
     try:
         return send_file(os.path.join(FILE_PATH, key), download_name=filename)
@@ -568,8 +569,8 @@ def retrieve_object(key, filename):
         return False
 
 
-def save_object(file, key):  # TODO decide if this should be filename or key
-    print("Saving file: ", key)
+def save_object(file, key):
+    '''Saves object to disk '''
     try:
         file.save(os.path.join(FILE_PATH, key))
         return True
@@ -578,6 +579,7 @@ def save_object(file, key):  # TODO decide if this should be filename or key
 
 
 def hash(key):
+    '''Hash used to determine worker node'''
     bits = hashlib.md5(key.encode())
     node_idx = int(bits.hexdigest(), base=16) % len(url_array)
     return node_idx

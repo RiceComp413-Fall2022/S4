@@ -43,7 +43,11 @@ function Dashboard() {
    * Calls the endpoint, should return the json result
    */
   const endpointCall = async (url, endpoint) => {
-    return await (await fetch(url + endpoint)).json();
+    const requestOptions = {
+      headers: {"X-Api-Key": "dapperdan"}
+    };
+
+    return await (await fetch(url + endpoint, requestOptions)).json();
   };
 
   // ------------------------ ListNodeSpecificObjects ------------------------

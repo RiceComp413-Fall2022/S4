@@ -420,6 +420,7 @@ class delete_object(Resource):
 @ns.route("/DiskUsage")
 class disk_usage(Resource):
     @ns.doc("DiskUsage")
+    @api_required
     def get(self):
         ''' Returns disk storage usage '''
         path = "./storage"

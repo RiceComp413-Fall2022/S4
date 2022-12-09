@@ -423,7 +423,7 @@ class disk_usage(Resource):
     @api_required
     def get(self):
         ''' Returns disk storage usage '''
-        path = "./storage"
+        path = "./"
         stats = shutil.disk_usage(path)
         return {"msg": "Success", "disk_usage": stats._asdict()}
 

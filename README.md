@@ -6,7 +6,7 @@ Super Simple Storage Service
 
 - Hunena Badat, hsb2@rice.edu, nenab2501@gmail.com
 - John Shieh, jcs17@rice.edu, thejohnshieh@gmail.com
-- Gavin Zhang, zz66@rice.edu
+- Gavin Zhang, zz66@rice.edu, gavin2600@gmail.com
 - Eric Yang, eyy1@rice.edu
 
 Links: [Proposal Doc](https://docs.google.com/document/d/e/2PACX-1vRGsQ7jpw3bz5lq5e-3cBRxnJzotZq034yJy0EUn0F8iKpqLDzQ3_fSGwiRQI6eYIMp1J3-XohiXuPR/pub), Google Drive

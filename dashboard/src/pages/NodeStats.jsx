@@ -8,19 +8,42 @@ import {
   Spacer,
 } from "@chakra-ui/react";
 import { AiFillCheckCircle, AiFillMinusCircle } from "react-icons/ai";
- 
-function NodeStats({everything}) {
+
+/**
+ * @param everything all data needed for each node
+ * @returns Grid of every node's individual stats
+ */
+function NodeStats({ everything }) {
   return (
     <Box bgColor="#ffeebd">
       <SimpleGrid columns={[1, 2, 3, 4]} px="5%" py="2%">
         {everything.map((item, idx) => {
-          return <NodeStat key={idx} num={idx} ip={item[0]} health={item[2]} listO={item[1]} diskUsage={item[3]} filesForNode={item[4]}/>;
+          return (
+            <NodeStat
+              key={idx}
+              num={idx}
+              ip={item[0]}
+              health={item[2]}
+              listO={item[1]}
+              diskUsage={item[3]}
+              filesForNode={item[4]}
+            />
+          );
         })}
       </SimpleGrid>
     </Box>
   );
 }
-function NodeStat({ num, ip, health, listO, diskUsage, filesForNode}) {
+
+/**
+ * @param num number of the node
+ * @param ip ipi of the node
+ * @param health whether the node is up
+ * @param diskUsage percent of node's storage used
+ * @param filesForNode files stored on node
+ * @returns Component housing stats of a specific node
+ */
+function NodeStat({ num, ip, health, listO, diskUsage, filesForNode }) {
   return (
     <Box w="100%" pr="8%" py="3%">
       <Box rounded="lg" bgColor="#eebd8b" style={{ aspectRatio: 1 }} p="5%">

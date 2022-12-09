@@ -2,14 +2,17 @@ import { Box, Flex, Heading, Image } from "@chakra-ui/react";
 import NodeStats from "./NodeStats";
 import OverallStats from "./OverallStats";
 import Dragonite from "../assets/dragonite.png";
-import nodesTXT from '../nodes.txt';
-import mainNodeTXT from '../mainNode.txt'
-import React, { useState } from 'react';
+import nodesTXT from "../nodes.txt";
+import mainNodeTXT from "../mainNode.txt";
+import React, { useState } from "react";
 import { useEffect } from "react";
 
+/**
+ * @returns Dashboard with overall stats and stats on specific nodes.
+ */
 function Dashboard() {
   // const everything = []
-  
+
   const [everything, setEverything] = useState([]);
   const [nodes, setNodes] = useState([]);
   const [mainNode, setMainNode] = useState("");
@@ -18,47 +21,61 @@ function Dashboard() {
   const [duResult, setduResult] = useState(0);
   const [workerFiles, setWorkerFiles] = useState({});
   // const [keyToFile, setKeyToFile] = useState({});
-  
+
   // Get the worker nodes from nodes.txt
-  useEffect(()=>{
-      const nodeList = []
-      fetch(nodesTXT).then(r => r.text()).then(text => {    
-        Object.entries(JSON.parse(text)).map(([key, value]) => nodeList.push(key));
+  useEffect(() => {
+    const nodeList = [];
+    fetch(nodesTXT)
+      .then((r) => r.text())
+      .then((text) => {
+        Object.entries(JSON.parse(text)).map(([key, value]) =>
+          nodeList.push(key)
+        );
         setNodes(nodeList);
       });
-      
-      // Get the main node from scale_info.txt
-      fetch(mainNodeTXT).then(r => r.text()).then(text => {   
-        setMainNode(text.split(/\r?\n/).filter(element => element)[1]);
-      });
-  }, [])
 
-  useEffect(()=>{
+    // Get the main node from scale_info.txt
+    fetch(mainNodeTXT)
+      .then((r) => r.text())
+      .then((text) => {
+        setMainNode(text.split(/\r?\n/).filter((element) => element)[1]);
+      });
+  }, []);
+
+  useEffect(() => {
     getData();
-  }, [mainNode, nodes])
-    
-  // Call the endpoint, should return the json result
+  }, [mainNode, nodes]);
+
+  /**
+   * Calls the endpoint, should return the json result
+   */
   const endpointCall = async (url, endpoint) => {
     return await (await fetch(url + endpoint)).json();
-  }
+  };
 
   // ------------------------ ListNodeSpecificObjects ------------------------
+  /**
+   * @param ip ip of node to check
+   * @returns gets keys stored in each node
+   */
   const nodeToKeys = async (ip) => {
     let data = await endpointCall(ip, "/ListNodeToKeys");
-    console.log("data", data);
     let values = {};
     for (let key in data) {
-    if (key !== "msg") {
-      Object.entries(JSON.parse(data[key])).map(([key, value]) => {
-        values[key] = value;
-      })
+      if (key !== "msg") {
+        Object.entries(JSON.parse(data[key])).map(([key, value]) => {
+          values[key] = value;
+        });
+      }
     }
-  }
-  console.log(values);
-  return values;
-  }
+    return values;
+  };
 
   // ------------------------ ListAllObjects ------------------------
+  /**
+   * @param ip ip of node to check
+   * @returns all objects in the system
+   */
   const listObjects = async (ip) => {
     let result = await endpointCall(ip, "/ListObjects");
     let values = [];
@@ -72,9 +89,13 @@ function Dashboard() {
       }
     }
     return [values, keyToFile];
-  }
+  };
 
   // ------------------------ HealthCheck ------------------------
+  /**
+   * @param ip ip address of the node to check
+   * @returns whether the node is healthy
+   */
   const healthCheck = async (ip) => {
     let result = await endpointCall(ip, "/HealthCheck");
 
@@ -82,17 +103,34 @@ function Dashboard() {
     else sethcResult(false);
 
     return result != null ? true : false;
-
-  }
+  };
 
   // ------------------------ DiskUsage ------------------------
+  /**
+   * @param ip address of the node to check
+   * @returns percent of storage used in node
+   */
   const diskUsage = async (ip) => {
     let result = await endpointCall(ip, "/DiskUsage");
-    setduResult(Math.round(result["disk_usage"]["used"] / result["disk_usage"]["total"] * 100 * 10)/10);
-    return Math.round(result["disk_usage"]["used"] / result["disk_usage"]["total"] * 100 * 10)/10
-  }
+    setduResult(
+      Math.round(
+        (result["disk_usage"]["used"] / result["disk_usage"]["total"]) *
+          100 *
+          10
+      ) / 10
+    );
+    return (
+      Math.round(
+        (result["disk_usage"]["used"] / result["disk_usage"]["total"]) *
+          100 *
+          10
+      ) / 10
+    );
+  };
 
-  // Get the data
+  /**
+   * Gets all data needed by dashboard
+   */
   const getData = async () => {
     let listObjectsResult;
     let workerFilesResult;
@@ -103,24 +141,31 @@ function Dashboard() {
     if (nodes.length) {
       [listObjectsResult, keyToFile1] = await listObjects(nodes[0]);
     }
-    let allData = []
+    let allData = [];
     for (let i = 0; i < nodes.length; i++) {
       let filesForNode = new Set();
       const healthCheckResult = await healthCheck(nodes[i]);
-      const diskUsageResult =  await diskUsage(nodes[i]);
+      const diskUsageResult = await diskUsage(nodes[i]);
 
-      if (workerFilesResult !== undefined && workerFilesResult[nodes[i]] !== undefined) {
+      if (
+        workerFilesResult !== undefined &&
+        workerFilesResult[nodes[i]] !== undefined
+      ) {
         for (let j = 0; j < workerFilesResult[nodes[i]].length; j++) {
-          console.log({i}, keyToFile1);
           filesForNode.add(keyToFile1[workerFilesResult[nodes[i]][j]]);
         }
       }
-      console.log(filesForNode);
-      allData.push([nodes[i], listObjectsResult, healthCheckResult, diskUsageResult, Array.from(filesForNode)]);
+      allData.push([
+        nodes[i],
+        listObjectsResult,
+        healthCheckResult,
+        diskUsageResult,
+        Array.from(filesForNode),
+      ]);
     }
-    setEverything(allData)
-  }
-    
+    setEverything(allData);
+  };
+
   return (
     <>
       <Box bgColor="#ee9c39">
@@ -131,8 +176,8 @@ function Dashboard() {
           </Heading>
         </Flex>
       </Box>
-      <OverallStats everything = {everything}/>
-      <NodeStats everything = {everything}/>
+      <OverallStats everything={everything} />
+      <NodeStats everything={everything} />
     </>
   );
 }

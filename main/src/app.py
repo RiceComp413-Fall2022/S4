@@ -161,6 +161,7 @@ hostname = socket.gethostname()
 ipAddr = socket.gethostbyname(hostname)
 main_url = f"http://{ipAddr}:{PORT_NUM}/"
 # main_url = "http://127.0.0.1:5000/"
+# PORT_NUM = 5000
 
 healthy_workers = []
 

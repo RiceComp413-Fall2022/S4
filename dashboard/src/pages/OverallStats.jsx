@@ -7,9 +7,17 @@ import {
   Flex,
   HStack,
 } from "@chakra-ui/react";
-import { percent } from "style-value-types";
 
+/**
+ * @param label label of the stat
+ * @param color color of the stat
+ * @param stat statistic to display
+ * @returns Circular component showing stat
+ */
 function OverallStat({ label, color, stat }) {
+  /**
+   * @returns Desktop version of stat
+   */
   function DesktopStat() {
     return (
       <Box w="100%" mt="5%" display={["none", null, "inherit", "inherit"]}>
@@ -25,6 +33,9 @@ function OverallStat({ label, color, stat }) {
     );
   }
 
+  /**
+   * @returns mobile version of stat
+   */
   function MobileStat() {
     return (
       <HStack w="100%" mt="5%" display={["flex", null, "none", "none"]}>
@@ -52,8 +63,19 @@ function OverallStat({ label, color, stat }) {
   );
 }
 
-function OverallStats({everything}) {
-  var [size, totalHealthy, percentHealthy, totalStorage, usedStorage, percentUsedStorage] = [0, 0, 0, 0, 0, 0];
+/**
+ * @param everything all stats used for overall stats
+ * @returns Component showing overall stats of the system
+ */
+function OverallStats({ everything }) {
+  var [
+    size,
+    totalHealthy,
+    percentHealthy,
+    totalStorage,
+    usedStorage,
+    percentUsedStorage,
+  ] = [0, 0, 0, 0, 0, 0];
 
   everything.map((x, i) => {
     size++;
@@ -64,9 +86,12 @@ function OverallStats({everything}) {
     totalStorage += 100;
   });
 
-  percentHealthy = Math.round(totalHealthy/size*100);
-  percentUsedStorage = Math.round(usedStorage/totalStorage*100);
+  percentHealthy = Math.round((totalHealthy / size) * 100);
+  percentUsedStorage = Math.round((usedStorage / totalStorage) * 100);
 
+  /**
+   * @returns Grid of circular components for each overall stat
+   */
   function Content() {
     return (
       <SimpleGrid
@@ -75,7 +100,11 @@ function OverallStats({everything}) {
         w="50%"
       >
         <OverallStat label="Health" color="green.400" stat={percentHealthy} />
-        <OverallStat label="Storage" color="blue.400" stat={percentUsedStorage} />
+        <OverallStat
+          label="Storage"
+          color="blue.400"
+          stat={percentUsedStorage}
+        />
       </SimpleGrid>
     );
   }

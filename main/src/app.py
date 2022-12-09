@@ -215,6 +215,11 @@ arr_param.add_argument("nodes", type=str, action="append")
 # NO REQUEST WILL BE MADE AND SO THIS FUNCTION CAN'T CALL BEFORE A REQUEST IF NO REQUEST IS MADE.
 @app.before_first_request
 def start():
+    """
+    Links the main node to all worker nodes.
+    """
+
+    # Sets this node to run a health check on all worker nodes every 10 seconds
     rt = RepeatedTimer(10, healthCheck)
 
     for worker in ALL_WORKERS:
@@ -258,6 +263,10 @@ def start():
 
 # ----------------------------------- HealthCheck -----------------------------------
 def healthCheck():
+    """
+    Checks each worker for health status and replicates their files
+    to another node if they are down.
+    """
     downWorkers = []
     healthyWorkers = []
 
@@ -352,6 +361,10 @@ class ScaleDown(Resource):
     @api.response(400, "Failure", model=ScaleDown400)
     @admin_required
     def post(self):
+        """
+        Halves the amount of active nodes, replicating shutdown nodes'
+        files to still active nodes.
+        """
         global ALL_WORKERS
         global node_to_keys
         global key_to_nodes
@@ -383,6 +396,10 @@ class ScaleUp(Resource):
     @api.response(400, "Failure", model=ScaleUp400)
     @admin_required
     def post(self):
+        """
+        Doubles the amount of active nodes, redistributing files
+        in current nodes.
+        """
         global ALL_WORKERS
         global node_to_keys
         global key_to_nodes
@@ -411,6 +428,10 @@ class ScaleUp(Resource):
 
 
 def redistribute_files():
+    """
+    Redistributes files in the system to the new list of
+    all workers in the system.
+    """
     for idx, worker in enumerate(ALL_WORKERS):
         try:
             r = requests.put(
@@ -493,6 +514,9 @@ def redistribute_files():
 @ns.route("/HealthCheck")
 class HealthCheck(Resource):
     def get(self):
+        """
+        Returns that this node is healthy.
+        """
         return {"msg": "Success"}, 200
 
 
@@ -504,11 +528,13 @@ class RecordPutObject(Resource):
     @api.response(200, "Success", model=RecordPutObject200)
     @internal_required
     def post(self):
+        """
+        Records that a file has been put in certain worker nodes.
+        """
         global node_to_keys
         global key_to_nodes
         global key_to_filename
 
-        # TODO check that request comes from worker
         body = request.form
         key, filename, nodes = body["key"], body["filename"], json.loads(body["nodes"])
 
@@ -528,10 +554,13 @@ class listObjects(Resource):
     @api.response(200, "Success", model=ListObjects200)
     @internal_required
     def get(self):
-        print(request.origin)
+        """
+        Lists the objects stored in the system.
+        """
         global key_to_filename
 
         return {"msg": "Success", "objects": json.dumps(key_to_filename)}, 200
+
 
 # ----------------------------------- ListNodeToKeys -----------------------------------
 @ns.route("/ListNodeToKeys")
@@ -539,9 +568,17 @@ class listNodeToKeys(Resource):
     @ns.doc("ListNodeToKeys")
     # @api.response(200, "Success", model=ListObjects200)
     def get(self):
+        """
+        Lists the keys stored in each worker node.
+        """
         global node_to_keys
-        node_to_keys_lists = dict(zip(node_to_keys.keys(), map(list, node_to_keys.values())))
-        return {"msg": "Success", "node_to_keys_lists": json.dumps(dict(node_to_keys_lists))}, 200
+        node_to_keys_lists = dict(
+            zip(node_to_keys.keys(), map(list, node_to_keys.values()))
+        )
+        return {
+            "msg": "Success",
+            "node_to_keys_lists": json.dumps(dict(node_to_keys_lists)),
+        }, 200
 
 
 # ----------------------------------- DeleteObject -----------------------------------
@@ -553,6 +590,9 @@ class deleteObject(Resource):
     @api.response(404, "Error: Not Found", model=DeleteObject404)
     @internal_required
     def post(self):
+        """
+        Deletes an object from the system.
+        """
         healthyWorkers = []
         args = request.args
         key = args.get("key")
@@ -618,6 +658,9 @@ class findObject(Resource):
     @api.response(404, "Error: Not Found", model=FindObject404)
     @internal_required
     def get(self):
+        """
+        Finds whether an object is in the system.
+        """
         args = request.args
         key = args.get("key")
 

@@ -7,6 +7,7 @@ sys.path.append("../tests")
 
 # #Perform Health Check
 def test_health_check(start_server):
+    """ Tests HealthCheck endpoint for all workers """
     worker_1 = requests.get("http://127.0.0.1:5001/HealthCheck", timeout=5)
     worker_2 = requests.get("http://127.0.0.1:5002/HealthCheck", timeout=5)
     worker_3 = requests.get("http://127.0.0.1:5003/HealthCheck", timeout=5)
@@ -17,6 +18,7 @@ def test_health_check(start_server):
     assert worker_3.status_code == 200
 
 def test_put_delete_object(start_server):
+    """ Test PutObject and DeleteObject endpoints """
     put_res = put_tetris_obj()
     assert put_res.status_code == 201
 
@@ -24,6 +26,7 @@ def test_put_delete_object(start_server):
     assert del_res.status_code == 200
 
 def test_get_delete_object(start_server):
+    """ Test PutObject, GetObject, and DeleteObject endpoints """
     put_res = put_hello_world_obj()
     assert put_res.status_code == 201
 
@@ -34,6 +37,7 @@ def test_get_delete_object(start_server):
     assert delete_res.status_code == 200
 
 def test_delete_object(start_server):
+    """ Test PutObject and DeleteObject endpoints """
     put_res = put_hello_world_obj()
     assert put_res.status_code == 201
 
@@ -41,6 +45,7 @@ def test_delete_object(start_server):
     assert del_res.status_code == 200
 
 def test_list_objects(start_server):
+    """ Test ListObject endpoints """
     put_hello_world_obj()
     put_tetris_obj()
     list_res = requests.get("http://127.0.0.1:5001/ListObjects")
@@ -59,23 +64,27 @@ def test_list_objects(start_server):
     assert del_res_2.status_code == 200
 
 def put_tetris_obj():
+    """ Performs PutObject on a worker node with image file"""
     file = open("./InputTetris.png", "rb")
     file.seek(0)
     worker_1 = requests.put("http://127.0.0.1:5001/PutObject", files={"file" : file}, params={"key":"OutputTetris"})
     return worker_1
 
 def put_hello_world_obj():
+    """ Performs PutObject on a worker node with txt file"""
     file = open("./HelloWorld.txt", "rb")
     file.seek(0)
     worker_1 = requests.put("http://127.0.0.1:5001/PutObject", files={"file" : file}, params={"key":"hello_output"})
     return worker_1
 
 def delete_hello_world_obj():
+    """ Performs DeleteObject on a worker node for txt file"""
     worker_1 = requests.put("http://127.0.0.1:5002/DeleteObject", params={"key":"hello_output"})
     print("Status_code for delete: " , worker_1.status_code)
     return worker_1
 
 def delete_tetris_obj():
+    """ Performs DeleteObject on a worker node for img file"""
     worker_1 = requests.put("http://127.0.0.1:5002/DeleteObject", params={"key":"OutputTetris"})
     print("Status_code for delete: " , worker_1.status_code)
     return worker_1

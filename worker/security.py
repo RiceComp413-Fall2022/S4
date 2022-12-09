@@ -8,6 +8,14 @@ INTERNAL_HEADERS = {"X-Api-Key": INTERNAL_KEY}
 
 
 def api_required(func):
+    """
+    Wrapper that restricts endpoints to only be accessible by
+    requests including the proper API key
+
+    Inputs:
+        func (callable) - the function to be wrapped
+    """
+
     @functools.wraps(func)
     def decorator(*args, **kwargs):
         if request.headers and "X-Api-Key" in request.headers:
@@ -20,6 +28,14 @@ def api_required(func):
 
 
 def internal_required(func):
+    """
+    Wrapper that restricts endpoints to only be accessible by
+    other nodes in the network
+
+    Inputs:
+        func (callable) - the function to be wrapped
+    """
+
     @functools.wraps(func)
     def decorator(*args, **kwargs):
         if request.headers and "X-Api-Key" in request.headers:
@@ -32,6 +48,14 @@ def internal_required(func):
 
 
 def admin_required(func):
+    """
+    Wrapper that restricts endpoints to only be accessible by
+    requests including the proper API key
+
+    Inputs:
+        func (callable) - the function to be wrapped
+    """
+
     @functools.wraps(func)
     def decorator(*args, **kwargs):
         if request.headers and "X-Api-Key" in request.headers:

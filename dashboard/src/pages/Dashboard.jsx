@@ -11,16 +11,9 @@ import { useEffect } from "react";
  * @returns Dashboard with overall stats and stats on specific nodes.
  */
 function Dashboard() {
-  // const everything = []
-
   const [everything, setEverything] = useState([]);
   const [nodes, setNodes] = useState([]);
   const [mainNode, setMainNode] = useState("");
-  const [hcResult, sethcResult] = useState();
-  // const [loResult, setloResult] = useState([]);
-  const [duResult, setduResult] = useState(0);
-  const [workerFiles, setWorkerFiles] = useState({});
-  // const [keyToFile, setKeyToFile] = useState({});
 
   // Get the worker nodes from nodes.txt
   useEffect(() => {
@@ -80,6 +73,7 @@ function Dashboard() {
     let result = await endpointCall(ip, "/ListObjects");
     let values = [];
     let keyToFile = {};
+
     for (let key in result) {
       if (result[key] !== "Files retrieved successfully.") {
         for (let innerKey in result[key]) {
@@ -99,9 +93,6 @@ function Dashboard() {
   const healthCheck = async (ip) => {
     let result = await endpointCall(ip, "/HealthCheck");
 
-    if (result != null) sethcResult(true);
-    else sethcResult(false);
-
     return result != null ? true : false;
   };
 
@@ -112,13 +103,7 @@ function Dashboard() {
    */
   const diskUsage = async (ip) => {
     let result = await endpointCall(ip, "/DiskUsage");
-    setduResult(
-      Math.round(
-        (result["disk_usage"]["used"] / result["disk_usage"]["total"]) *
-          100 *
-          10
-      ) / 10
-    );
+
     return (
       Math.round(
         (result["disk_usage"]["used"] / result["disk_usage"]["total"]) *
@@ -135,26 +120,27 @@ function Dashboard() {
     let listObjectsResult;
     let workerFilesResult;
     let keyToFile1;
+    let allData = [];
+
     if (mainNode) {
       workerFilesResult = await nodeToKeys(mainNode);
     }
+
     if (nodes.length) {
       [listObjectsResult, keyToFile1] = await listObjects(nodes[0]);
     }
-    let allData = [];
+
     for (let i = 0; i < nodes.length; i++) {
       let filesForNode = new Set();
       const healthCheckResult = await healthCheck(nodes[i]);
       const diskUsageResult = await diskUsage(nodes[i]);
 
-      if (
-        workerFilesResult !== undefined &&
-        workerFilesResult[nodes[i]] !== undefined
-      ) {
+      if (workerFilesResult !== undefined && workerFilesResult[nodes[i]] !== undefined) {
         for (let j = 0; j < workerFilesResult[nodes[i]].length; j++) {
           filesForNode.add(keyToFile1[workerFilesResult[nodes[i]][j]]);
         }
       }
+
       allData.push([
         nodes[i],
         listObjectsResult,

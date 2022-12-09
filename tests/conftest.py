@@ -1,12 +1,14 @@
 import pytest
-import sys
 import json
-import threading
 from werkzeug.serving import make_server
 import requests
-from multiprocessing import Process
+import sys
 
+sys.path.insert(0, '../worker/')
+from worker.security import internal_required, api_required, INTERNAL_HEADERS
 from worker.app import app as worker_app
+
+sys.path.insert(0, '../main/src/')
 from main.src.app import app as main_app
 
 @pytest.fixture(scope='session', autouse=True)
@@ -26,7 +28,7 @@ def start_server():
                     "workers": json.dumps(ALL_WORKERS),
                     "workerIndex": i,
                     "mainUrl": main_url,
-                    "testing" : True
-                })
+                    "testing" : True},
+                headers=INTERNAL_HEADERS)
 
     yield main_url

@@ -45,4 +45,4 @@ Links: [Proposal Doc](https://docs.google.com/document/d/e/2PACX-1vRGsQ7jpw3bz5l
 
 ## Run Tests:
 
-1. To run the unit tests, type `pytest` **in the test directory**.
+1. To run the unit tests, type `pytest` **in the test directory** after running three worker nodes on ports 5001, 5002, 5003 and a main node on port 5000 locally.

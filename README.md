@@ -9,7 +9,7 @@ Super Simple Storage Service
 - Gavin Zhang, zz66@rice.edu, gavin2600@gmail.com
 - Eric Yang, eyy1@rice.edu, ericy848@gmail.com
 
-Links: [Proposal Doc](https://docs.google.com/document/d/e/2PACX-1vRGsQ7jpw3bz5lq5e-3cBRxnJzotZq034yJy0EUn0F8iKpqLDzQ3_fSGwiRQI6eYIMp1J3-XohiXuPR/pub), Google Drive
+Links: [Proposal Doc](https://docs.google.com/document/d/e/2PACX-1vRGsQ7jpw3bz5lq5e-3cBRxnJzotZq034yJy0EUn0F8iKpqLDzQ3_fSGwiRQI6eYIMp1J3-XohiXuPR/pub), Google Drive, [Final Presentation](https://docs.google.com/presentation/d/1hFdTXWG4xLVi7ZMcJpIn1_UnIH2Wtn0e8jo4d7CMPxI/edit?usp=sharing)
 ## First Time Setup:
 
 1. Create a new virtual environment using Python 3.8.9:
